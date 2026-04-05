@@ -7,27 +7,17 @@ import { useEffect } from "react";
 import L from "leaflet";
 import type { FeatureCollection, Geometry } from "geojson";
 
-// Force zoom the map so TN fills the sidebar container
+// Fit the map so TN is centered and properly sized
 function FitBounds() {
   const map = useMap();
   
   useEffect(() => {
-    // Invalidate size first so Leaflet recalculates container dimensions
-    map.invalidateSize();
-
-    const tnBounds = L.latLngBounds(
-      [8.07, 76.23],
-      [13.56, 80.35]
-    );
-    map.fitBounds(tnBounds, { padding: [0, 0], maxZoom: 10 });
-
-    // After initial fit, force zoom up by 2 levels so TN fills the box
+    // Wait for container to be properly sized
     setTimeout(() => {
       map.invalidateSize();
-      map.fitBounds(tnBounds, { padding: [0, 0], maxZoom: 10 });
-      const z = map.getZoom();
-      map.setZoom(z + 2, { animate: false });
-    }, 200);
+      // Set a fixed view: center of TN at zoom 7 — consistent across all screen sizes
+      map.setView([10.8, 78.7], 7, { animate: false });
+    }, 150);
   }, [map]);
 
   return null;
@@ -102,8 +92,8 @@ export default function SidebarMapLeaflet({ highlightedDistrict }: SidebarMapLea
     <MapContainer 
       center={[10.8, 78.7]}
       zoom={7}
-      minZoom={6}
-      maxZoom={12}
+      minZoom={7}
+      maxZoom={7}
       className="w-full h-full bg-transparent z-0"
       zoomControl={false}
       dragging={false}
