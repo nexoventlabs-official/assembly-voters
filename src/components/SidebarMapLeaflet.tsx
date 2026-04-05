@@ -16,7 +16,7 @@ function FitBounds() {
     setTimeout(() => {
       map.invalidateSize();
       // Set a fixed view: center of TN at zoom 7 — consistent across all screen sizes
-      map.setView([10.8, 78.7], 7, { animate: false });
+      map.setView([10.9, 78.4], 6, { animate: false });
     }, 150);
   }, [map]);
 
@@ -90,10 +90,10 @@ export default function SidebarMapLeaflet({ highlightedDistrict }: SidebarMapLea
 
   return (
     <MapContainer 
-      center={[10.8, 78.7]}
-      zoom={7}
-      minZoom={7}
-      maxZoom={7}
+      center={[10.9, 78.4]}
+      zoom={6}
+      minZoom={6}
+      maxZoom={6}
       className="w-full h-full bg-transparent z-0"
       zoomControl={false}
       dragging={false}
