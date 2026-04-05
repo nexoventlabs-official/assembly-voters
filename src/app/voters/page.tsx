@@ -73,12 +73,7 @@ function VotersContent() {
     try {
       const res = await fetch("/api/sheets");
       const data = await res.json();
-      const sheetList = data.sheets || [];
-      setSheets(sheetList);
-      // If no assembly selected yet, default to first sheet
-      if (!selectedAssembly && sheetList.length > 0) {
-        setSelectedAssembly(sheetList[0]);
-      }
+      setSheets(data.sheets || []);
       setSheetsLoaded(true);
     } catch {
       console.error("Failed to fetch sheets");
@@ -91,10 +86,15 @@ function VotersContent() {
   }, [fetchSheets]);
 
   useEffect(() => {
-    if (sheetsLoaded && selectedAssembly) {
-      fetchVoters();
+    if (sheetsLoaded) {
+      if (!selectedAssembly && sheets.length > 0) {
+        setSelectedAssembly(sheets[0]);
+        router.replace(`/voters?assembly=${encodeURIComponent(sheets[0])}`);
+      } else if (selectedAssembly) {
+        fetchVoters();
+      }
     }
-  }, [fetchVoters, sheetsLoaded, selectedAssembly]);
+  }, [fetchVoters, sheetsLoaded, selectedAssembly, sheets, router]);
 
   const filteredVoters = voters.filter((v) => {
     if (!searchQuery) return true;
