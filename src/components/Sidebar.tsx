@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { LayoutDashboard, Users, Menu, X, Hexagon, BarChart3 } from "lucide-react";
-import { useState, Suspense } from "react";
-import SidebarMapWrapper from "./SidebarMapWrapper";
+import { useState } from "react";
+import SidebarMap from "./SidebarMap";
+import assemblyData from "@/lib/assemblyToDistrict.json";
 
 const navItems = [
   { href: "/", label: "Overview", icon: LayoutDashboard },
@@ -12,9 +13,24 @@ const navItems = [
   { href: "/voters", label: "Voter Database", icon: Users },
 ];
 
+const normalize = (str?: string) => (str || "").trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+
 export default function Sidebar() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Read assembly from URL and map to district for sidebar map highlight
+  const assemblyFromUrl = searchParams.get("assembly");
+  let highlightedDistrict: string | undefined = undefined;
+  if (assemblyFromUrl) {
+    const searchVal = normalize(assemblyFromUrl);
+    const data = assemblyData as Record<string, string>;
+    const matchedKey = Object.keys(data).find(k => normalize(k) === searchVal);
+    if (matchedKey) {
+      highlightedDistrict = data[matchedKey];
+    }
+  }
 
   return (
     <>
@@ -100,9 +116,7 @@ export default function Sidebar() {
 
         {/* Map */}
         <div className="px-4 pb-4">
-          <Suspense fallback={<div className="h-52 w-full bg-slate-50 rounded-2xl animate-pulse mt-4 border border-slate-100"></div>}>
-            <SidebarMapWrapper />
-          </Suspense>
+          <SidebarMap highlightedDistrict={highlightedDistrict} />
         </div>
 
       </aside>
