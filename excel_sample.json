@@ -1,0 +1,102 @@
+[
+  {
+    "KANCHI ZONE": "Zone",
+    "__EMPTY": "District",
+    "__EMPTY_1": "AC_No",
+    "__EMPTY_2": "Constituency",
+    "__EMPTY_3": "Male",
+    "__EMPTY_4": "Female",
+    "__EMPTY_5": "Third_Gender",
+    "__EMPTY_6": "Total"
+  },
+  {
+    "KANCHI ZONE": "KANCHI ZONE",
+    "__EMPTY": "THIRUVALLUR",
+    "__EMPTY_1": 1,
+    "__EMPTY_2": "Gummidipoondi",
+    "__EMPTY_3": 122195,
+    "__EMPTY_4": 129372,
+    "__EMPTY_5": 36,
+    "__EMPTY_6": 251603
+  },
+  {
+    "KANCHI ZONE": "",
+    "__EMPTY": "",
+    "__EMPTY_1": 2,
+    "__EMPTY_2": "Ponneri",
+    "__EMPTY_3": 121221,
+    "__EMPTY_4": 127662,
+    "__EMPTY_5": 34,
+    "__EMPTY_6": 248917
+  },
+  {
+    "KANCHI ZONE": "",
+    "__EMPTY": "",
+    "__EMPTY_1": 3,
+    "__EMPTY_2": "Tiruttani",
+    "__EMPTY_3": 128642,
+    "__EMPTY_4": 131417,
+    "__EMPTY_5": 25,
+    "__EMPTY_6": 260084
+  },
+  {
+    "KANCHI ZONE": "",
+    "__EMPTY": "",
+    "__EMPTY_1": 4,
+    "__EMPTY_2": "Thiruvallur",
+    "__EMPTY_3": 121188,
+    "__EMPTY_4": 127426,
+    "__EMPTY_5": 37,
+    "__EMPTY_6": 248651
+  },
+  {
+    "KANCHI ZONE": "",
+    "__EMPTY": "",
+    "__EMPTY_1": 5,
+    "__EMPTY_2": "Poonamallee",
+    "__EMPTY_3": 176849,
+    "__EMPTY_4": 186769,
+    "__EMPTY_5": 70,
+    "__EMPTY_6": 363688
+  },
+  {
+    "KANCHI ZONE": "",
+    "__EMPTY": "",
+    "__EMPTY_1": 6,
+    "__EMPTY_2": "Avadi",
+    "__EMPTY_3": 209662,
+    "__EMPTY_4": 219035,
+    "__EMPTY_5": 75,
+    "__EMPTY_6": 428772
+  },
+  {
+    "KANCHI ZONE": "",
+    "__EMPTY": "",
+    "__EMPTY_1": 7,
+    "__EMPTY_2": "Maduravoyal",
+    "__EMPTY_3": 179602,
+    "__EMPTY_4": 184349,
+    "__EMPTY_5": 80,
+    "__EMPTY_6": 364031
+  },
+  {
+    "KANCHI ZONE": "",
+    "__EMPTY": "",
+    "__EMPTY_1": 8,
+    "__EMPTY_2": "Ambattur",
+    "__EMPTY_3": 162248,
+    "__EMPTY_4": 168175,
+    "__EMPTY_5": 57,
+    "__EMPTY_6": 330480
+  },
+  {
+    "KANCHI ZONE": "",
+    "__EMPTY": "",
+    "__EMPTY_1": 9,
+    "__EMPTY_2": "Madavaram",
+    "__EMPTY_3": 205922,
+    "__EMPTY_4": 214596,
+    "__EMPTY_5": 83,
+    "__EMPTY_6": 420601
+  }
+]
