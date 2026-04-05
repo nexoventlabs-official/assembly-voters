@@ -48,46 +48,78 @@ export async function getSheetNames(): Promise<string[]> {
   return sheetNames;
 }
 
+// Detect status from row background color (column A)
+function getStatusFromColor(bgColor?: { red?: number; green?: number; blue?: number }): string {
+  if (!bgColor) return "pending";
+  const r = bgColor.red ?? 1;
+  const g = bgColor.green ?? 1;
+  const b = bgColor.blue ?? 1;
+  // Green row = accepted (r < 0.9, g > 0.9)
+  if (g > 0.9 && r < 0.9 && b < 0.9) return "accepted";
+  // Red row = rejected (r > 0.9, g < 0.9)
+  if (r > 0.9 && g < 0.9 && b < 0.9) return "rejected";
+  return "pending";
+}
+
 export async function getVotersFromSheet(
   sheetName: string
 ): Promise<Voter[]> {
-  const res = await sheets.spreadsheets.values.get({
+  // Fetch values
+  const valuesRes = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
     range: `'${sheetName}'!A:H`,
   });
 
-  const rows = res.data.values || [];
+  const rows = valuesRes.data.values || [];
   if (rows.length <= 2) return [];
 
+  // Fetch formatting to read row colors
+  const formatRes = await sheets.spreadsheets.get({
+    spreadsheetId: SPREADSHEET_ID,
+    ranges: [`'${sheetName}'`],
+    fields: "sheets.data.rowData.values.userEnteredFormat.backgroundColor",
+  });
+
+  const rowData = formatRes.data.sheets?.[0]?.data?.[0]?.rowData || [];
+
   // Sheet structure: Row 1 = header, Row 2 = sub-header, data starts from row 3 (index 2)
-  // NEW format: A=S.No, B=Name, C=Email, D=Phone.No ("main / optional"), E=Party Name, F=Assembly Name, G=Status
-  // OLD format: A=S.No, B=Name, C=Email, D=Phone.No, E=Party Name, F=Assembly Name, G=Optional Mobile, H=Status
+  // Columns: A=S.No, B=Name, C=Email, D=Phone.No ("main / optional"), E=Party Name, F=Assembly Name
   return rows
     .slice(2)
     .filter((row) => row[1] && row[1].toString().trim() !== "")
     .map((row, index) => {
+      const actualRowIndex = index + 2; // 0-indexed row in sheet (after skipping 2 headers)
       const phoneRaw = (row[3] || "").toString().trim();
       const colG = (row[6] || "").toString().trim();
       const colH = (row[7] || "").toString().trim();
 
       let mobile = phoneRaw;
       let optionalMobile = "";
-      let status = "pending";
 
-      // Check if phone column D already contains "/" (new format)
+      // Parse phone numbers
       if (phoneRaw.includes("/")) {
         const parts = phoneRaw.split("/").map((p: string) => p.trim());
         mobile = parts[0];
         optionalMobile = parts[1] || "";
-        // New format: status is in G
-        status = colG || "pending";
       } else if (colG && /^\d+$/.test(colG)) {
-        // Old format: G is a phone number (optional mobile), H is status
+        // Old format: G is optional mobile
         optionalMobile = colG;
-        status = colH || "pending";
-      } else {
-        // New format or no optional mobile: G is status
-        status = colG || "pending";
+      }
+
+      // Read status from row background color first, fall back to column G/H text
+      const cellFormat = rowData[actualRowIndex]?.values?.[0]?.userEnteredFormat;
+      const bgColor = cellFormat?.backgroundColor;
+      let status = getStatusFromColor(bgColor as { red?: number; green?: number; blue?: number });
+
+      // Fallback: if color says pending, check text columns for legacy data
+      if (status === "pending") {
+        if (phoneRaw.includes("/")) {
+          status = colG || "pending";
+        } else if (colG && /^\d+$/.test(colG)) {
+          status = colH || "pending";
+        } else if (colG) {
+          status = colG;
+        }
       }
 
       return {
@@ -193,18 +225,17 @@ export async function updateVoterStatus(
   row: number,
   status: string
 ): Promise<void> {
-  // Write status to column G (needed for app to read), but hide the text visually
-  const statusValue = status.toLowerCase() === "pending" ? "" : status;
+  // Clear column G (no status text — color indicates status)
   await sheets.spreadsheets.values.update({
     spreadsheetId: SPREADSHEET_ID,
     range: `'${sheetName}'!G${row}`,
     valueInputOption: "USER_ENTERED",
     requestBody: {
-      values: [[statusValue]],
+      values: [[""]],
     },
   });
 
-  // Apply row background color on columns A-F and hide G text (white font)
+  // Apply row background color on columns A-F
   await applyRowColor(sheetName, row, status);
 }
 
@@ -258,26 +289,6 @@ async function applyRowColor(
             fields: "userEnteredFormat.backgroundColor",
           },
         },
-        {
-          // Hide column G text by making font color white
-          repeatCell: {
-            range: {
-              sheetId,
-              startRowIndex: row - 1,
-              endRowIndex: row,
-              startColumnIndex: 6,
-              endColumnIndex: 7, // Column G only
-            },
-            cell: {
-              userEnteredFormat: {
-                textFormat: {
-                  foregroundColor: { red: 1, green: 1, blue: 1 }, // white text
-                },
-              },
-            },
-            fields: "userEnteredFormat.textFormat.foregroundColor",
-          },
-        },
       ],
     },
   });
@@ -293,10 +304,7 @@ export async function updateVoter(
     ? `${voter.mobile} / ${voter.optionalMobile}`
     : voter.mobile;
 
-  // Status: don't write "pending" to sheet
-  const statusValue = voter.status && voter.status.toLowerCase() !== "pending" ? voter.status : "";
-
-  // Columns: B=Name, C=Email, D=Phone.No, E=Party Name, F=Assembly Name, G=Status
+  // Columns: B=Name, C=Email, D=Phone.No, E=Party Name, F=Assembly Name, G=empty (status is indicated by color)
   await sheets.spreadsheets.values.update({
     spreadsheetId: SPREADSHEET_ID,
     range: `'${sheetName}'!B${row}:G${row}`,
@@ -309,7 +317,7 @@ export async function updateVoter(
           phoneValue,
           voter.partyName,
           voter.assemblyName,
-          statusValue,
+          "", // No status text — color indicates status
         ],
       ],
     },
@@ -319,8 +327,12 @@ export async function updateVoter(
   await applyRowColor(sheetName, row, voter.status || "pending");
 }
 
-// Helper to parse rows from a single sheet's raw values into stats
-function parseSheetStats(sheetName: string, rows: string[][]) {
+// Helper to parse rows from a single sheet's raw values + formatting into stats
+function parseSheetStats(
+  sheetName: string,
+  rows: string[][],
+  rowData?: { values?: { userEnteredFormat?: { backgroundColor?: { red?: number; green?: number; blue?: number } } }[] }[]
+) {
   // Skip 2 header rows, filter empty rows
   const dataRows = rows.slice(2).filter((row) => row[1] && row[1].toString().trim() !== "");
   const total = dataRows.length;
@@ -328,18 +340,27 @@ function parseSheetStats(sheetName: string, rows: string[][]) {
   let accepted = 0;
   let rejected = 0;
 
-  for (const row of dataRows) {
-    const phoneRaw = (row[3] || "").toString().trim();
-    const colG = (row[6] || "").toString().trim();
-    const colH = (row[7] || "").toString().trim();
+  for (let i = 0; i < dataRows.length; i++) {
+    const row = dataRows[i];
+    const actualRowIndex = i + 2; // 0-indexed (skip 2 header rows)
 
-    let status = "";
-    if (phoneRaw.includes("/")) {
-      status = colG;
-    } else if (colG && /^\d+$/.test(colG)) {
-      status = colH;
-    } else {
-      status = colG;
+    // Try reading status from row color first
+    const bgColor = rowData?.[actualRowIndex]?.values?.[0]?.userEnteredFormat?.backgroundColor;
+    let status = getStatusFromColor(bgColor);
+
+    // Fallback to text columns for legacy data
+    if (status === "pending") {
+      const phoneRaw = (row[3] || "").toString().trim();
+      const colG = (row[6] || "").toString().trim();
+      const colH = (row[7] || "").toString().trim();
+
+      if (phoneRaw.includes("/")) {
+        status = colG || "pending";
+      } else if (colG && /^\d+$/.test(colG)) {
+        status = colH || "pending";
+      } else if (colG) {
+        status = colG;
+      }
     }
 
     const s = status.toLowerCase();
@@ -353,10 +374,24 @@ function parseSheetStats(sheetName: string, rows: string[][]) {
 export async function getDashboardStats() {
   const sheetNames = await getCachedSheetNames();
 
-  // Use batchGet to fetch all sheets in batches of 50 ranges per call
-  const BATCH_SIZE = 50;
   const assemblyStats: { name: string; total: number; accepted: number; rejected: number; pending: number }[] = [];
 
+  // Fetch all sheet formatting in one call
+  const formatRes = await sheets.spreadsheets.get({
+    spreadsheetId: SPREADSHEET_ID,
+    fields: "sheets.properties.title,sheets.data.rowData.values.userEnteredFormat.backgroundColor",
+  });
+  const allSheets = formatRes.data.sheets || [];
+
+  // Build a map of sheet name -> rowData
+  const formatMap: Record<string, typeof allSheets[0]["data"]> = {};
+  for (const s of allSheets) {
+    const title = s.properties?.title || "";
+    if (title) formatMap[title] = s.data;
+  }
+
+  // Fetch values in batches
+  const BATCH_SIZE = 50;
   for (let i = 0; i < sheetNames.length; i += BATCH_SIZE) {
     const batch = sheetNames.slice(i, i + BATCH_SIZE);
     const ranges = batch.map((name) => `'${name}'!A:H`);
@@ -370,12 +405,12 @@ export async function getDashboardStats() {
       const valueRanges = res.data.valueRanges || [];
       for (let j = 0; j < batch.length; j++) {
         const rows = valueRanges[j]?.values || [];
-        assemblyStats.push(parseSheetStats(batch[j], rows));
+        const rowData = formatMap[batch[j]]?.[0]?.rowData || [];
+        assemblyStats.push(parseSheetStats(batch[j], rows, rowData as Parameters<typeof parseSheetStats>[2]));
       }
     } catch (error: unknown) {
       const err = error as { code?: number };
       if (err.code === 429) {
-        // Rate limited — wait and retry once
         await new Promise((resolve) => setTimeout(resolve, 3000));
         try {
           const res = await sheets.spreadsheets.values.batchGet({
@@ -385,10 +420,10 @@ export async function getDashboardStats() {
           const valueRanges = res.data.valueRanges || [];
           for (let j = 0; j < batch.length; j++) {
             const rows = valueRanges[j]?.values || [];
-            assemblyStats.push(parseSheetStats(batch[j], rows));
+            const rowData = formatMap[batch[j]]?.[0]?.rowData || [];
+            assemblyStats.push(parseSheetStats(batch[j], rows, rowData as Parameters<typeof parseSheetStats>[2]));
           }
         } catch {
-          // If retry fails, add zeroed stats for this batch
           for (const name of batch) {
             assemblyStats.push({ name, total: 0, accepted: 0, rejected: 0, pending: 0 });
           }
