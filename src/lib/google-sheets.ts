@@ -203,6 +203,63 @@ export async function updateVoterStatus(
       values: [[statusValue]],
     },
   });
+
+  // Apply row background color based on status
+  await applyRowColor(sheetName, row, status);
+}
+
+async function getSheetId(sheetName: string): Promise<number> {
+  const res = await sheets.spreadsheets.get({
+    spreadsheetId: SPREADSHEET_ID,
+  });
+  const sheet = res.data.sheets?.find(
+    (s) => s.properties?.title === sheetName
+  );
+  return sheet?.properties?.sheetId ?? 0;
+}
+
+async function applyRowColor(
+  sheetName: string,
+  row: number,
+  status: string
+): Promise<void> {
+  const sheetId = await getSheetId(sheetName);
+  const s = status.toLowerCase();
+
+  // Green for accepted, red for rejected, white (clear) for pending
+  let bgColor: { red: number; green: number; blue: number };
+  if (s === "accepted") {
+    bgColor = { red: 0.85, green: 0.95, blue: 0.85 }; // light green
+  } else if (s === "rejected") {
+    bgColor = { red: 0.95, green: 0.85, blue: 0.85 }; // light red
+  } else {
+    bgColor = { red: 1, green: 1, blue: 1 }; // white for pending
+  }
+
+  await sheets.spreadsheets.batchUpdate({
+    spreadsheetId: SPREADSHEET_ID,
+    requestBody: {
+      requests: [
+        {
+          repeatCell: {
+            range: {
+              sheetId,
+              startRowIndex: row - 1, // 0-indexed
+              endRowIndex: row,
+              startColumnIndex: 0,
+              endColumnIndex: 8, // Columns A through H
+            },
+            cell: {
+              userEnteredFormat: {
+                backgroundColor: bgColor,
+              },
+            },
+            fields: "userEnteredFormat.backgroundColor",
+          },
+        },
+      ],
+    },
+  });
 }
 
 export async function updateVoter(
@@ -236,6 +293,9 @@ export async function updateVoter(
       ],
     },
   });
+
+  // Apply row background color based on status
+  await applyRowColor(sheetName, row, voter.status || "pending");
 }
 
 // Helper to parse rows from a single sheet's raw values into stats
