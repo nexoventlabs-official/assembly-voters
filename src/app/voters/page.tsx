@@ -4,10 +4,8 @@ import { Suspense, useEffect, useState, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
   Users,
-  Plus,
   Search,
   Filter,
-  MessageCircle,
   Mail,
   Phone,
   ChevronDown,
@@ -16,12 +14,11 @@ import {
   XCircle,
   Clock,
   Loader2,
-  Eye,
-  Edit3,
   UserPlus,
   Building2
 } from "lucide-react";
 import Link from "next/link";
+import WhatsAppIcon from "@/components/WhatsAppIcon";
 
 interface Voter {
   row: number;
@@ -136,19 +133,19 @@ function VotersContent() {
     switch (s) {
       case "accepted":
         return (
-          <span className="inline-flex items-center gap-1.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-full px-3 py-1 text-xs font-semibold shadow-sm">
+          <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 rounded-full px-3 py-1 text-xs font-semibold">
             <CheckCircle size={12} strokeWidth={2.5} /> Accepted
           </span>
         );
       case "rejected":
         return (
-          <span className="inline-flex items-center gap-1.5 bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-full px-3 py-1 text-xs font-semibold shadow-sm">
+          <span className="inline-flex items-center gap-1.5 bg-rose-50 text-rose-700 rounded-full px-3 py-1 text-xs font-semibold">
             <XCircle size={12} strokeWidth={2.5} /> Rejected
           </span>
         );
       default:
         return (
-          <span className="inline-flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-full px-3 py-1 text-xs font-semibold shadow-sm">
+          <span className="inline-flex items-center gap-1.5 bg-amber-50 text-amber-700 rounded-full px-3 py-1 text-xs font-semibold">
             <Clock size={12} strokeWidth={2.5} /> Pending
           </span>
         );
@@ -173,82 +170,69 @@ function VotersContent() {
   ).length;
   const pendingCount = totalCount - acceptedCount - rejectedCount;
 
+  const statusTabs = [
+    { key: "total", label: "All", count: totalCount, color: "indigo" },
+    { key: "accepted", label: "Accepted", count: acceptedCount, color: "emerald" },
+    { key: "rejected", label: "Rejected", count: rejectedCount, color: "rose" },
+    { key: "pending", label: "Pending", count: pendingCount, color: "amber" },
+  ];
+
   return (
-    <div className="p-6 md:p-8 xl:p-12 max-w-[1600px] mx-auto min-h-screen">
+    <div className="p-6 md:p-8 xl:p-10 max-w-[1440px] mx-auto">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-10 gap-6">
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-8 gap-4">
         <div>
-          <h1 className="text-4xl md:text-5xl font-extrabold text-white tracking-tight mb-2 drop-shadow-sm glow-text">
+          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
             Voter Database
           </h1>
-          <p className="text-muted text-lg font-light tracking-wide max-w-2xl">
-            View, manage, and engage with constituents across assemblies
+          <p className="text-slate-500 mt-1">
+            View, manage, and engage with constituents across assemblies.
           </p>
         </div>
         <Link
           href="/voters/add"
-          className="inline-flex items-center gap-2 glass-button border border-white/20 text-white px-6 py-3 rounded-xl font-semibold text-sm transition-all"
+          className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-medium text-sm transition-colors shadow-sm"
         >
-          <UserPlus size={18} />
-          New Voter
+          <UserPlus size={16} />
+          Add Voter
         </Link>
       </div>
 
-      {/* Quick Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
-        <button
-          onClick={() => setSelectedStatus("total")}
-          className={`p-5 rounded-2xl border text-left transition-all ${
-            selectedStatus === "total"
-              ? "border-blue-500/40 bg-blue-500/10 shadow-[0_0_20px_rgba(59,130,246,0.15)]"
-              : "border-white/10 glass-panel hover:border-white/20 hover:bg-white/5"
-          }`}
-        >
-          <p className="text-sm text-muted font-medium uppercase tracking-wider mb-1">Total</p>
-          <p className="text-3xl font-bold text-white tracking-tight">{totalCount}</p>
-        </button>
-        <button
-          onClick={() => setSelectedStatus("accepted")}
-          className={`p-5 rounded-2xl border text-left transition-all ${
-            selectedStatus === "accepted"
-              ? "border-emerald-500/40 bg-emerald-500/10 shadow-[0_0_20px_rgba(16,185,129,0.15)]"
-              : "border-white/10 glass-panel hover:border-white/20 hover:bg-white/5"
-          }`}
-        >
-          <p className="text-sm text-emerald-500/80 font-medium uppercase tracking-wider mb-1">Accepted</p>
-          <p className="text-3xl font-bold text-emerald-400 tracking-tight">{acceptedCount}</p>
-        </button>
-        <button
-          onClick={() => setSelectedStatus("rejected")}
-          className={`p-5 rounded-2xl border text-left transition-all ${
-            selectedStatus === "rejected"
-              ? "border-rose-500/40 bg-rose-500/10 shadow-[0_0_20px_rgba(244,63,94,0.15)]"
-              : "border-white/10 glass-panel hover:border-white/20 hover:bg-white/5"
-          }`}
-        >
-          <p className="text-sm text-rose-500/80 font-medium uppercase tracking-wider mb-1">Rejected</p>
-          <p className="text-3xl font-bold text-rose-400 tracking-tight">{rejectedCount}</p>
-        </button>
-        <button
-          onClick={() => setSelectedStatus("pending")}
-          className={`p-5 rounded-2xl border text-left transition-all ${
-            selectedStatus === "pending"
-              ? "border-amber-500/40 bg-amber-500/10 shadow-[0_0_20px_rgba(245,158,11,0.15)]"
-              : "border-white/10 glass-panel hover:border-white/20 hover:bg-white/5"
-          }`}
-        >
-          <p className="text-sm text-amber-500/80 font-medium uppercase tracking-wider mb-1">Pending</p>
-          <p className="text-3xl font-bold text-amber-400 tracking-tight">{pendingCount}</p>
-        </button>
+      {/* Status Tabs */}
+      <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-1">
+        {statusTabs.map((tab) => {
+          const isActive = selectedStatus === tab.key;
+          const colorMap: Record<string, string> = {
+            indigo: isActive ? "bg-indigo-600 text-white" : "bg-white text-slate-600 hover:bg-slate-50",
+            emerald: isActive ? "bg-emerald-600 text-white" : "bg-white text-slate-600 hover:bg-slate-50",
+            rose: isActive ? "bg-rose-600 text-white" : "bg-white text-slate-600 hover:bg-slate-50",
+            amber: isActive ? "bg-amber-500 text-white" : "bg-white text-slate-600 hover:bg-slate-50",
+          };
+          return (
+            <button
+              key={tab.key}
+              onClick={() => setSelectedStatus(tab.key)}
+              className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border transition-all ${
+                isActive
+                  ? `${colorMap[tab.color]} border-transparent shadow-sm`
+                  : `${colorMap[tab.color]} border-slate-200`
+              }`}
+            >
+              {tab.label}
+              <span className={`text-xs font-bold px-1.5 py-0.5 rounded-md ${
+                isActive ? "bg-white/20" : "bg-slate-100 text-slate-500"
+              }`}>
+                {tab.count}
+              </span>
+            </button>
+          );
+        })}
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-4 mb-8">
-        {/* Assembly Filter */}
+      <div className="flex flex-col sm:flex-row gap-3 mb-6">
         <div className="relative">
-          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-            <Filter size={16} className="text-muted" />
-          </div>
+          <Filter size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
           <select
             value={selectedAssembly}
             onChange={(e) => {
@@ -256,151 +240,134 @@ function VotersContent() {
               setSelectedAssembly(val);
               router.replace(`/voters?assembly=${encodeURIComponent(val)}`);
             }}
-            className="appearance-none glass-input block w-full pl-11 pr-10 py-3 rounded-xl text-sm font-medium min-w-[220px]"
+            className="appearance-none input-field pl-10 pr-9 py-2.5 text-sm font-medium min-w-[220px]"
           >
             {sheets.map((sheet) => (
-              <option key={sheet} value={sheet} className="bg-zinc-900 text-white">
+              <option key={sheet} value={sheet}>
                 {sheet}
               </option>
             ))}
           </select>
-          <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
-            <ChevronDown size={16} className="text-muted" />
-          </div>
+          <ChevronDown size={15} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
         </div>
 
-        {/* Search */}
-        <div className="relative flex-1 group">
-          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-            <Search size={16} className="text-muted group-focus-within:text-primary-light transition-colors" />
-          </div>
+        <div className="relative flex-1">
+          <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
             placeholder="Search by name, email, mobile, party..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="glass-input block w-full pl-11 pr-10 py-3 rounded-xl text-sm"
+            className="input-field w-full pl-10 pr-9 py-2.5 text-sm"
           />
           {searchQuery && (
             <button
               onClick={() => setSearchQuery("")}
-              className="absolute inset-y-0 right-0 pr-4 flex items-center text-muted hover:text-white transition-colors"
+              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
             >
-              <X size={16} />
+              <X size={14} />
             </button>
           )}
         </div>
       </div>
 
       {/* Voters Table */}
-      <div className="glass-panel rounded-3xl border border-white/10 shadow-2xl overflow-hidden flex flex-col h-[600px] max-h-[60vh]">
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
         {loading ? (
-          <div className="flex-1 flex flex-col items-center justify-center">
-            <div className="relative">
-              <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full"></div>
-              <Loader2 className="animate-spin text-primary relative z-10" size={40} strokeWidth={1.5} />
-            </div>
+          <div className="flex flex-col items-center justify-center py-24">
+            <Loader2 className="animate-spin text-indigo-600" size={28} />
+            <p className="text-slate-400 text-sm mt-3">Loading voters...</p>
           </div>
         ) : filteredVoters.length === 0 ? (
-          <div className="flex-1 flex flex-col items-center justify-center text-muted">
-            <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center mb-4 border border-white/10">
-              <Users size={32} className="opacity-50" />
+          <div className="flex flex-col items-center justify-center py-24 text-slate-400">
+            <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center mb-4">
+              <Users size={28} className="text-slate-300" />
             </div>
-            <p className="text-lg font-medium text-white/70">No constituents found</p>
+            <p className="text-base font-medium text-slate-500">No constituents found</p>
             <p className="text-sm mt-1">Try adjusting your filters or search query</p>
           </div>
         ) : (
-          <div className="flex-1 overflow-auto overflow-x-auto p-0">
-            <table className="w-full text-sm text-left border-collapse">
-              <thead className="sticky top-0 z-20">
-                <tr className="glass-header">
-                  <th className="py-4 px-6 font-semibold text-white/80 text-xs uppercase tracking-wider border-b border-white/5">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-slate-50/80 border-b border-slate-100">
+                  <th className="py-3 px-6 font-semibold text-slate-500 text-xs uppercase tracking-wider text-left">
                     Name
                   </th>
-                  <th className="py-4 px-6 font-semibold text-white/80 text-xs uppercase tracking-wider border-b border-white/5 hidden md:table-cell">
+                  <th className="py-3 px-6 font-semibold text-slate-500 text-xs uppercase tracking-wider text-left hidden md:table-cell">
                     Contact
                   </th>
-                  <th className="py-4 px-6 font-semibold text-white/80 text-xs uppercase tracking-wider border-b border-white/5 hidden lg:table-cell">
-                    Affiliation
+                  <th className="py-3 px-6 font-semibold text-slate-500 text-xs uppercase tracking-wider text-left hidden lg:table-cell">
+                    Party
                   </th>
-                  <th className="py-4 px-6 font-semibold text-white/80 text-xs uppercase tracking-wider border-b border-white/5 hidden lg:table-cell">
-                    Location
+                  <th className="py-3 px-6 font-semibold text-slate-500 text-xs uppercase tracking-wider text-left hidden lg:table-cell">
+                    Assembly
                   </th>
-                  <th className="py-4 px-6 font-semibold text-white/80 text-xs uppercase tracking-wider border-b border-white/5 text-center">
+                  <th className="py-3 px-6 font-semibold text-slate-500 text-xs uppercase tracking-wider text-center">
                     Status
                   </th>
-                  <th className="py-4 px-6 font-semibold text-white/80 text-xs uppercase tracking-wider border-b border-white/5 text-center">
-                    Quick Connect
+                  <th className="py-3 px-6 font-semibold text-slate-500 text-xs uppercase tracking-wider text-center">
+                    Actions
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/5">
-                {filteredVoters.map((voter, idx) => (
+              <tbody className="divide-y divide-slate-100">
+                {filteredVoters.map((voter) => (
                   <tr
                     key={`${voter.sheetName}-${voter.row}`}
-                    className="group hover:bg-white/[0.03] transition-colors cursor-pointer"
+                    className="group hover:bg-slate-50/60 transition-colors cursor-pointer"
                     onClick={() => {
                       setSelectedVoter(voter);
                       setShowDetailModal(true);
                     }}
                   >
-                    <td className="py-4 px-6">
+                    <td className="py-3.5 px-6">
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary/30 to-accent/30 border border-white/10 flex items-center justify-center text-sm font-bold text-white shadow-inner group-hover:from-primary/50 group-hover:to-accent/50 transition-all">
+                        <div className="w-9 h-9 rounded-lg bg-indigo-50 flex items-center justify-center text-sm font-bold text-indigo-600 group-hover:bg-indigo-100 transition-colors">
                           {voter.name?.charAt(0)?.toUpperCase() || "V"}
                         </div>
                         <div>
-                          <p className="font-medium text-white/90 group-hover:text-white transition-colors">
+                          <p className="font-medium text-slate-800">
                             {voter.name || "—"}
                           </p>
-                          <p className="text-xs text-muted md:hidden mt-0.5">
+                          <p className="text-xs text-slate-400 md:hidden mt-0.5">
                             {voter.mobile}
                           </p>
                         </div>
                       </div>
                     </td>
-                    <td className="py-4 px-6 hidden md:table-cell text-muted/80 font-mono text-xs">
+                    <td className="py-3.5 px-6 hidden md:table-cell text-slate-500 font-mono text-xs">
                       {voter.mobile || "—"}
                     </td>
-                    <td className="py-4 px-6 hidden lg:table-cell text-muted/80">
-                      <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-white/5 border border-white/5 text-xs">
+                    <td className="py-3.5 px-6 hidden lg:table-cell">
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-slate-100 text-slate-600 text-xs font-medium">
                         {voter.partyName || "Independent"}
                       </span>
                     </td>
-                    <td className="py-4 px-6 hidden lg:table-cell text-muted/80 text-xs">
+                    <td className="py-3.5 px-6 hidden lg:table-cell text-slate-500 text-xs">
                       {voter.assemblyName || voter.sheetName}
                     </td>
-                    <td className="py-4 px-6 text-center">
+                    <td className="py-3.5 px-6 text-center">
                       {getStatusBadge(voter.status)}
                     </td>
-                    <td className="py-4 px-6">
+                    <td className="py-3.5 px-6">
                       <div
-                        className="flex items-center justify-center gap-2"
+                        className="flex items-center justify-center gap-1.5"
                         onClick={(e) => e.stopPropagation()}
                       >
-                        <button
-                          onClick={() => {
-                            setSelectedVoter(voter);
-                            setShowDetailModal(true);
-                          }}
-                          className="w-8 h-8 rounded-lg bg-white/5 border border-white/5 flex items-center justify-center text-muted hover:text-white hover:bg-white/10 hover:border-white/20 transition-all"
-                          title="View Details"
-                        >
-                          <Eye size={14} />
-                        </button>
                         {voter.mobile && (
                           <button
                             onClick={() => openWhatsApp(voter.mobile)}
-                            className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/20 transition-all shadow-[0_0_10px_rgba(16,185,129,0.1)] hover:shadow-[0_0_15px_rgba(16,185,129,0.3)]"
+                            className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600 hover:bg-emerald-100 transition-colors"
                             title="WhatsApp"
                           >
-                            <MessageCircle size={14} />
+                            <WhatsAppIcon size={15} />
                           </button>
                         )}
                         {voter.mobile && (
                           <a
                             href={`tel:${voter.mobile}`}
-                            className="w-8 h-8 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 hover:text-blue-300 hover:bg-blue-500/20 transition-all shadow-[0_0_10px_rgba(59,130,246,0.1)] hover:shadow-[0_0_15px_rgba(59,130,246,0.3)]"
+                            className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 hover:bg-blue-100 transition-colors"
                             title="Call"
                           >
                             <Phone size={14} />
@@ -409,7 +376,7 @@ function VotersContent() {
                         {voter.email && (
                           <button
                             onClick={() => openMail(voter.email)}
-                            className="w-8 h-8 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 hover:text-purple-300 hover:bg-purple-500/20 transition-all shadow-[0_0_10px_rgba(168,85,247,0.1)] hover:shadow-[0_0_15px_rgba(168,85,247,0.3)]"
+                            className="w-8 h-8 rounded-lg bg-violet-50 flex items-center justify-center text-violet-600 hover:bg-violet-100 transition-colors"
                             title="Email"
                           >
                             <Mail size={14} />
@@ -423,159 +390,161 @@ function VotersContent() {
             </table>
           </div>
         )}
-        <div className="glass-header px-6 py-4 flex items-center justify-between text-xs text-muted/70">
+        {/* Footer */}
+        <div className="px-6 py-3.5 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400">
           <p>
-            Viewing <span className="text-white/90 font-medium">{filteredVoters.length}</span> of <span className="text-white/90 font-medium">{voters.length}</span> records
+            Showing <span className="text-slate-700 font-medium">{filteredVoters.length}</span> of <span className="text-slate-700 font-medium">{voters.length}</span> records
           </p>
+          <p className="text-slate-400">{selectedAssembly}</p>
         </div>
       </div>
 
       {/* Detail Modal */}
       {showDetailModal && selectedVoter && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
-        >
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
           {/* Backdrop */}
           <div 
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
+            className="absolute inset-0 bg-black/30 backdrop-blur-sm transition-opacity"
             onClick={() => setShowDetailModal(false)}
           ></div>
           
           <div
-            className="glass-panel w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.5)] relative z-10 flex flex-col"
+            className="bg-white w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border border-slate-200 shadow-2xl relative z-10 flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
-            <div className="glass-header p-6 flex flex-row items-center justify-between sticky top-0 z-20">
+            <div className="px-6 py-5 border-b border-slate-100 flex flex-row items-center justify-between sticky top-0 bg-white z-20 rounded-t-2xl">
               <div className="flex items-center gap-4">
-                 <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/50 to-accent/50 border border-white/20 flex items-center justify-center text-xl font-bold text-white shadow-inner">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center text-xl font-bold text-white shadow-sm">
                   {selectedVoter.name?.charAt(0)?.toUpperCase() || "V"}
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-white tracking-tight">{selectedVoter.name || "Unknown Constituent"}</h2>
-                  <p className="text-sm text-primary-light font-medium flex items-center gap-1.5 mt-0.5">
+                  <h2 className="text-lg font-bold text-slate-900">{selectedVoter.name || "Unknown Constituent"}</h2>
+                  <p className="text-sm text-slate-500 font-medium flex items-center gap-1.5 mt-0.5">
                     <Building2 size={12} /> {selectedVoter.assemblyName || selectedVoter.sheetName}
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => setShowDetailModal(false)}
-                className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-muted hover:text-white hover:bg-white/10 transition-colors"
+                className="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-200 transition-colors"
                 title="Close"
               >
-                <X size={16} />
+                <X size={18} />
               </button>
             </div>
 
             {/* Modal Body */}
-            <div className="p-6 space-y-8 flex-1">
+            <div className="p-6 space-y-6 flex-1">
               
+              {/* Info Cards */}
               <div>
-                <h3 className="text-xs font-semibold uppercase tracking-widest text-muted mb-4 border-b border-white/5 pb-2">Constituent Information</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-4 hover:border-white/10 transition-colors">
-                    <p className="text-xs text-muted font-medium mb-1.5 flex items-center gap-1.5"><Mail size={12}/> Email Address</p>
-                    <p className="text-sm font-medium text-white/90 break-words">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">Contact Information</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
+                    <p className="text-xs text-slate-400 font-medium mb-1.5 flex items-center gap-1.5"><Mail size={12}/> Email</p>
+                    <p className="text-sm font-medium text-slate-800 break-words">
                       {selectedVoter.email || "—"}
                     </p>
                   </div>
-                  <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-4 hover:border-white/10 transition-colors">
-                    <p className="text-xs text-muted font-medium mb-1.5 flex items-center gap-1.5"><Phone size={12}/> Primary Mobile</p>
-                    <p className="text-sm font-medium text-white/90 font-mono">
+                  <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
+                    <p className="text-xs text-slate-400 font-medium mb-1.5 flex items-center gap-1.5"><Phone size={12}/> Primary Mobile</p>
+                    <p className="text-sm font-medium text-slate-800 font-mono">
                       {selectedVoter.mobile || "—"}
                     </p>
                   </div>
-                  <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-4 hover:border-white/10 transition-colors">
-                    <p className="text-xs text-muted font-medium mb-1.5 flex items-center gap-1.5"><Phone size={12}/> Secondary Mobile</p>
-                    <p className="text-sm font-medium text-white/90 font-mono">
+                  <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
+                    <p className="text-xs text-slate-400 font-medium mb-1.5 flex items-center gap-1.5"><Phone size={12}/> Secondary Mobile</p>
+                    <p className="text-sm font-medium text-slate-800 font-mono">
                       {selectedVoter.optionalMobile || "—"}
                     </p>
                   </div>
-                  <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-4 hover:border-white/10 transition-colors">
-                    <p className="text-xs text-muted font-medium mb-1.5 flex items-center gap-1.5"><Users size={12}/> Political Affiliation</p>
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-md bg-primary/10 border border-primary/20 text-primary-light text-sm font-medium">
+                  <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
+                    <p className="text-xs text-slate-400 font-medium mb-1.5 flex items-center gap-1.5"><Users size={12}/> Political Affiliation</p>
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-md bg-indigo-50 text-indigo-700 text-sm font-medium">
                       {selectedVoter.partyName || "Independent"}
                     </span>
                   </div>
                 </div>
               </div>
 
+              {/* Quick Actions */}
               <div>
-                 <h3 className="text-xs font-semibold uppercase tracking-widest text-muted mb-4 border-b border-white/5 pb-2">Communication & Action</h3>
-                 <div className="flex flex-wrap items-center gap-3">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">Quick Actions</h3>
+                <div className="flex flex-wrap items-center gap-2">
                   {selectedVoter.mobile && (
                     <button
                       onClick={() => openWhatsApp(selectedVoter.mobile)}
-                      className="flex items-center gap-2 bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-400 px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors"
+                      className="flex items-center gap-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors border border-emerald-100"
                     >
-                      <MessageCircle size={16} /> Message on WhatsApp
+                      <WhatsAppIcon size={15} /> WhatsApp
                     </button>
                   )}
                   {selectedVoter.email && (
                     <button
                       onClick={() => openMail(selectedVoter.email)}
-                      className="flex items-center gap-2 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/30 text-blue-400 px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors"
+                      className="flex items-center gap-2 bg-blue-50 hover:bg-blue-100 text-blue-700 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors border border-blue-100"
                     >
-                      <Mail size={16} /> Send Email
+                      <Mail size={15} /> Email
                     </button>
                   )}
                   {selectedVoter.mobile && (
                     <a
                       href={`tel:${selectedVoter.mobile}`}
-                      className="flex items-center gap-2 bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/30 text-purple-400 px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors"
+                      className="flex items-center gap-2 bg-violet-50 hover:bg-violet-100 text-violet-700 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors border border-violet-100"
                     >
-                      <Phone size={16} /> Voice Call
+                      <Phone size={15} /> Call
                     </a>
                   )}
                 </div>
               </div>
 
               {/* Status Update */}
-              <div className="bg-black/20 rounded-2xl p-5 border border-white/5">
+              <div className="bg-slate-50 rounded-xl p-5 border border-slate-100">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-sm font-bold text-white tracking-wide">Review & Verification Status</h3>
-                  <div className="scale-90 origin-right">{getStatusBadge(selectedVoter.status)}</div>
+                  <h3 className="text-sm font-semibold text-slate-800">Verification Status</h3>
+                  {getStatusBadge(selectedVoter.status)}
                 </div>
                 
-                <div className="flex flex-col sm:flex-row items-center gap-3">
+                <div className="flex flex-col sm:flex-row items-center gap-2">
                   <button
                     disabled={updatingStatus}
                     onClick={() => handleStatusUpdate(selectedVoter, "accepted")}
-                    className={`flex-1 w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-all border ${
+                    className={`flex-1 w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium transition-all border ${
                       selectedVoter.status?.toLowerCase() === "accepted"
-                        ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.2)]"
-                        : "bg-white/5 border-white/10 text-muted hover:bg-emerald-500/10 hover:border-emerald-500/30 hover:text-emerald-400"
+                        ? "bg-emerald-600 border-emerald-600 text-white shadow-sm"
+                        : "bg-white border-slate-200 text-slate-600 hover:bg-emerald-50 hover:border-emerald-200 hover:text-emerald-700"
                     }`}
                   >
-                    <CheckCircle size={16} strokeWidth={selectedVoter.status?.toLowerCase() === "accepted" ? 3 : 2} /> Verify
+                    <CheckCircle size={15} /> Accept
                   </button>
                   <button
                     disabled={updatingStatus}
                     onClick={() => handleStatusUpdate(selectedVoter, "rejected")}
-                    className={`flex-1 w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-all border ${
+                    className={`flex-1 w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium transition-all border ${
                       selectedVoter.status?.toLowerCase() === "rejected"
-                        ? "bg-rose-500/20 border-rose-500/40 text-rose-400 shadow-[0_0_15px_rgba(244,63,94,0.2)]"
-                        : "bg-white/5 border-white/10 text-muted hover:bg-rose-500/10 hover:border-rose-500/30 hover:text-rose-400"
+                        ? "bg-rose-600 border-rose-600 text-white shadow-sm"
+                        : "bg-white border-slate-200 text-slate-600 hover:bg-rose-50 hover:border-rose-200 hover:text-rose-700"
                     }`}
                   >
-                    <XCircle size={16} strokeWidth={selectedVoter.status?.toLowerCase() === "rejected" ? 3 : 2} /> Reject
+                    <XCircle size={15} /> Reject
                   </button>
                   <button
                     disabled={updatingStatus}
                     onClick={() => handleStatusUpdate(selectedVoter, "pending")}
-                    className={`flex-1 w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-all border ${
+                    className={`flex-1 w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium transition-all border ${
                       selectedVoter.status?.toLowerCase() === "pending" || !selectedVoter.status
-                        ? "bg-amber-500/20 border-amber-500/40 text-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.2)]"
-                        : "bg-white/5 border-white/10 text-muted hover:bg-amber-500/10 hover:border-amber-500/30 hover:text-amber-400"
+                        ? "bg-amber-500 border-amber-500 text-white shadow-sm"
+                        : "bg-white border-slate-200 text-slate-600 hover:bg-amber-50 hover:border-amber-200 hover:text-amber-700"
                     }`}
                   >
-                    <Clock size={16} strokeWidth={selectedVoter.status?.toLowerCase() === "pending" || !selectedVoter.status ? 3 : 2} /> Pending
+                    <Clock size={15} /> Pending
                   </button>
                 </div>
                 
                 {updatingStatus && (
-                  <div className="flex items-center justify-center gap-2 mt-4 text-sm font-medium text-primary-light">
-                    <Loader2 size={14} className="animate-spin" /> Synchronizing data...
+                  <div className="flex items-center justify-center gap-2 mt-3 text-sm font-medium text-indigo-600">
+                    <Loader2 size={14} className="animate-spin" /> Updating...
                   </div>
                 )}
               </div>
@@ -590,13 +559,12 @@ function VotersContent() {
 export default function VotersPage() {
   return (
     <Suspense fallback={
-      <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
-        <div className="relative">
-          <div className="absolute inset-0 bg-primary/30 blur-2xl rounded-full"></div>
-          <div className="glass-panel p-6 rounded-3xl flex flex-col items-center gap-4 relative z-10 border border-white/10">
-            <Loader2 className="animate-spin text-primary" size={48} strokeWidth={1.5} />
-            <span className="text-muted text-sm font-medium tracking-wide pb-1">Loading System...</span>
+      <div className="flex items-center justify-center h-screen">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center">
+            <Loader2 className="animate-spin text-indigo-600" size={24} />
           </div>
+          <p className="text-slate-400 text-sm font-medium">Loading voters...</p>
         </div>
       </div>
     }>

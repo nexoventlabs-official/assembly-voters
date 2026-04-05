@@ -1,21 +1,21 @@
 @import "tailwindcss";
 
 :root {
-  --background: #09090b;
-  --foreground: #fafafa;
-  --primary: #8b5cf6;
-  --primary-light: #a78bfa;
-  --primary-dark: #6d28d9;
-  --accent: #38bdf8;
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --primary: #6366f1;
+  --primary-light: #818cf8;
+  --primary-dark: #4f46e5;
+  --accent: #0ea5e9;
   --success: #10b981;
   --danger: #ef4444;
   --warning: #f59e0b;
-  --muted: #a1a1aa;
-  --card: #18181b;
-  --border: #27272a;
-  --sidebar-bg: rgba(9, 9, 11, 0.8);
-  --sidebar-text: #a1a1aa;
-  --sidebar-active: #fafafa;
+  --muted: #64748b;
+  --card: #ffffff;
+  --border: #e2e8f0;
+  --sidebar-bg: #ffffff;
+  --sidebar-text: #64748b;
+  --sidebar-active: #0f172a;
 }
 
 @theme inline {
@@ -40,10 +40,6 @@
 
 body {
   background: var(--background);
-  background-image: 
-    radial-gradient(circle at 15% 50%, rgba(139, 92, 246, 0.1), transparent 25%),
-    radial-gradient(circle at 85% 30%, rgba(56, 189, 248, 0.1), transparent 25%);
-  background-attachment: fixed;
   color: var(--foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
   margin: 0;
@@ -52,7 +48,7 @@ body {
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+  scrollbar-color: #cbd5e1 transparent;
 }
 
 *::-webkit-scrollbar {
@@ -65,53 +61,80 @@ body {
 }
 
 *::-webkit-scrollbar-thumb {
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: #cbd5e1;
   border-radius: 10px;
 }
 
-.glass-panel {
-  background: rgba(24, 24, 27, 0.6);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 4px 24px -1px rgba(0, 0, 0, 0.2);
+/* --- Reusable utility classes (light theme) --- */
+
+.card-base {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02);
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
-.glass-header {
-  background: linear-gradient(180deg, rgba(24, 24, 27, 0.8) 0%, rgba(24, 24, 27, 0.4) 100%);
-  backdrop-filter: blur(12px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+.card-base:hover {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04);
 }
 
-.glass-input {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+.card-elevated {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.05), 0 1px 4px rgba(0,0,0,0.03);
+}
+
+.section-header {
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.input-field {
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
   color: var(--foreground);
+  border-radius: 12px;
   transition: all 0.2s ease;
 }
 
-.glass-input:focus {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(139, 92, 246, 0.5);
-  box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.2);
+.input-field:focus {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
   outline: none;
 }
 
-.glass-button {
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.8), rgba(109, 40, 217, 0.9));
-  box-shadow: 0 4px 15px rgba(109, 40, 217, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  transition: all 0.3s ease;
+.input-field::placeholder {
+  color: #94a3b8;
 }
 
-.glass-button:hover {
-  box-shadow: 0 6px 20px rgba(109, 40, 217, 0.5);
+.btn-primary {
+  background: linear-gradient(135deg, #6366f1, #4f46e5);
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.25);
+  border: none;
+  transition: all 0.2s ease;
+}
+
+.btn-primary:hover {
+  box-shadow: 0 4px 16px rgba(79, 70, 229, 0.35);
   transform: translateY(-1px);
 }
 
-.glow-text {
-  text-shadow: 0 0 16px rgba(255, 255, 255, 0.3);
+.btn-primary:active {
+  transform: translateY(0);
 }
+
+/* Keep old class names as aliases so nothing breaks during migration */
+.glass-panel { background: #ffffff; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+.glass-header { background: #f8fafc; border-bottom: 1px solid #e2e8f0; }
+.glass-input { background: #ffffff; border: 1.5px solid #e2e8f0; color: var(--foreground); transition: all 0.2s ease; }
+.glass-input:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.12); outline: none; }
+.glass-input::placeholder { color: #94a3b8; }
+.glass-button { background: linear-gradient(135deg, #6366f1, #4f46e5); color: #fff; box-shadow: 0 2px 8px rgba(79,70,229,0.25); border: none; transition: all 0.2s ease; }
+.glass-button:hover { box-shadow: 0 4px 16px rgba(79,70,229,0.35); transform: translateY(-1px); }
+.glow-text { /* removed glow for light theme */ }
 
 /* Leaflet Overrides */
 .leaflet-popup.glass-popup .leaflet-popup-content-wrapper {

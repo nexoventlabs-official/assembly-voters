@@ -3,18 +3,32 @@
 import { MapContainer, GeoJSON, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import tnDistricts from "@/lib/tn_districts.json";
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import L from "leaflet";
 import type { FeatureCollection, Geometry } from "geojson";
 
-// Helper component to center and bounds
-function MapController({ featureSelected }: { featureSelected: unknown }) {
+// Force zoom the map so TN fills the sidebar container
+function FitBounds() {
   const map = useMap();
   
   useEffect(() => {
-    // If we want to bound to the highlighted feature, we could do it here
-    // But keeping it static might be better visually for a sidebar map
-  }, [featureSelected, map]);
+    // Invalidate size first so Leaflet recalculates container dimensions
+    map.invalidateSize();
+
+    const tnBounds = L.latLngBounds(
+      [8.07, 76.23],
+      [13.56, 80.35]
+    );
+    map.fitBounds(tnBounds, { padding: [0, 0], maxZoom: 10 });
+
+    // After initial fit, force zoom up by 2 levels so TN fills the box
+    setTimeout(() => {
+      map.invalidateSize();
+      map.fitBounds(tnBounds, { padding: [0, 0], maxZoom: 10 });
+      const z = map.getZoom();
+      map.setZoom(z + 2, { animate: false });
+    }, 200);
+  }, [map]);
 
   return null;
 }
@@ -24,8 +38,6 @@ interface SidebarMapLeafletProps {
 }
 
 export default function SidebarMapLeaflet({ highlightedDistrict }: SidebarMapLeafletProps) {
-  // Center of TN roughly
-  const center: [number, number] = [10.8505, 78.6569];
 
   // Map modern districts (post-2011) back to their parent districts in the GeoJSON
   // and handle major spelling variations
@@ -69,11 +81,11 @@ export default function SidebarMapLeaflet({ highlightedDistrict }: SidebarMapLea
     const isMatched = highNorm && (featureName.includes(highNorm) || highNorm.includes(featureName));
     
     return {
-      fillColor: isMatched ? "#10b981" : "#18181b", // Emerald for highlight, Zinc-900 otherwise
+      fillColor: isMatched ? "#6366f1" : "#94a3b8",
       weight: 1,
       opacity: 1,
-      color: "#3f3f46", // Zinc-700 for borders
-      fillOpacity: isMatched ? 0.9 : 0.4,
+      color: "#e2e8f0",
+      fillOpacity: isMatched ? 0.85 : 0.45,
     };
   };
 
@@ -81,14 +93,17 @@ export default function SidebarMapLeaflet({ highlightedDistrict }: SidebarMapLea
     // Show correct name in tooltip
     const name = feature.properties.NAME_2;
     layer.bindTooltip(name, {
-      className: "glass-popup !bg-[#09090b]/80 !text-white !border-white/10 !text-xs !shadow-xl",
+      className: "!bg-white !text-slate-800 !border-slate-200 !text-xs !shadow-lg !rounded-lg !px-2 !py-1 !font-semibold",
       sticky: true
     });
   };
 
   return (
     <MapContainer 
-      bounds={[[8.08, 76.24], [13.52, 80.35]]}
+      center={[10.8, 78.7]}
+      zoom={7}
+      minZoom={6}
+      maxZoom={12}
       className="w-full h-full bg-transparent z-0"
       zoomControl={false}
       dragging={false}
@@ -102,7 +117,7 @@ export default function SidebarMapLeaflet({ highlightedDistrict }: SidebarMapLea
         style={styleFeature}
         onEachFeature={onEachFeature}
       />
-      <MapController featureSelected={highlightedDistrict} />
+      <FitBounds />
     </MapContainer>
   );
 }
