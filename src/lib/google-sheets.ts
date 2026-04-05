@@ -193,7 +193,7 @@ export async function updateVoterStatus(
   row: number,
   status: string
 ): Promise<void> {
-  // Status is in column G — don't write "pending", leave blank instead
+  // Write status to column G (needed for app to read), but hide the text visually
   const statusValue = status.toLowerCase() === "pending" ? "" : status;
   await sheets.spreadsheets.values.update({
     spreadsheetId: SPREADSHEET_ID,
@@ -204,7 +204,7 @@ export async function updateVoterStatus(
     },
   });
 
-  // Apply row background color based on status
+  // Apply row background color on columns A-F and hide G text (white font)
   await applyRowColor(sheetName, row, status);
 }
 
@@ -241,13 +241,14 @@ async function applyRowColor(
     requestBody: {
       requests: [
         {
+          // Color columns A-F
           repeatCell: {
             range: {
               sheetId,
-              startRowIndex: row - 1, // 0-indexed
+              startRowIndex: row - 1,
               endRowIndex: row,
               startColumnIndex: 0,
-              endColumnIndex: 8, // Columns A through H
+              endColumnIndex: 6, // Columns A through F
             },
             cell: {
               userEnteredFormat: {
@@ -255,6 +256,26 @@ async function applyRowColor(
               },
             },
             fields: "userEnteredFormat.backgroundColor",
+          },
+        },
+        {
+          // Hide column G text by making font color white
+          repeatCell: {
+            range: {
+              sheetId,
+              startRowIndex: row - 1,
+              endRowIndex: row,
+              startColumnIndex: 6,
+              endColumnIndex: 7, // Column G only
+            },
+            cell: {
+              userEnteredFormat: {
+                textFormat: {
+                  foregroundColor: { red: 1, green: 1, blue: 1 }, // white text
+                },
+              },
+            },
+            fields: "userEnteredFormat.textFormat.foregroundColor",
           },
         },
       ],
