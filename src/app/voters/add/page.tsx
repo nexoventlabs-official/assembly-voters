@@ -147,6 +147,7 @@ export default function AddCandidatePage() {
   };
 
   return (
+    <>
     <div className="p-6 md:p-8 xl:p-10 max-w-3xl mx-auto">
       {/* Back link */}
       <Link
@@ -349,10 +350,11 @@ export default function AddCandidatePage() {
           </div>
         </div>
       </form>
+    </div>
 
-      {/* Existing Candidates in Selected Assembly */}
-      {form.sheetName && (
-        <div className="mt-8 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+    {/* Existing Candidates in Selected Assembly - Full width */}
+    {form.sheetName && (
+      <div className="bg-white border-t border-slate-200 shadow-sm overflow-hidden">
           <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Users size={16} className="text-indigo-500" />
@@ -428,8 +430,8 @@ export default function AddCandidatePage() {
               </table>
             </div>
           )}
-        </div>
-      )}
-    </div>
+      </div>
+    )}
+  </>
   );
 }
