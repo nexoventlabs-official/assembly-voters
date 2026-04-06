@@ -8,14 +8,26 @@ import {
   CheckCircle,
   AlertCircle,
   ChevronDown,
+  Users,
 } from "lucide-react";
 import Link from "next/link";
+
+interface Candidate {
+  row: number;
+  name: string;
+  email: string;
+  mobile: string;
+  partyName: string;
+  status: string;
+}
 
 export default function AddCandidatePage() {
   const [sheets, setSheets] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
+  const [existingCandidates, setExistingCandidates] = useState<Candidate[]>([]);
+  const [candidatesLoading, setCandidatesLoading] = useState(false);
 
   const [form, setForm] = useState({
     sheetName: "",
@@ -38,9 +50,24 @@ export default function AddCandidatePage() {
             sheetName: data.sheets[0],
             assemblyName: data.sheets[0],
           }));
+          fetchCandidates(data.sheets[0]);
         }
       });
   }, []);
+
+  const fetchCandidates = async (assembly: string) => {
+    if (!assembly) { setExistingCandidates([]); return; }
+    setCandidatesLoading(true);
+    try {
+      const res = await fetch(`/api/voters?assembly=${encodeURIComponent(assembly)}`);
+      const data = await res.json();
+      setExistingCandidates(data.voters || []);
+    } catch {
+      setExistingCandidates([]);
+    } finally {
+      setCandidatesLoading(false);
+    }
+  };
 
   const handleAssemblyChange = (value: string) => {
     setForm((prev) => ({
@@ -48,6 +75,7 @@ export default function AddCandidatePage() {
       sheetName: value,
       assemblyName: value,
     }));
+    fetchCandidates(value);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -82,6 +110,9 @@ export default function AddCandidatePage() {
         optionalMobile: "",
         partyName: "",
       }));
+
+      // Refresh existing candidates list
+      fetchCandidates(form.sheetName);
 
       setTimeout(() => {
         setSuccess(false);
@@ -296,6 +327,65 @@ export default function AddCandidatePage() {
           </div>
         </div>
       </form>
+
+      {/* Existing Candidates in Selected Assembly */}
+      {form.sheetName && (
+        <div className="mt-8 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Users size={16} className="text-indigo-500" />
+              <h2 className="text-sm font-semibold text-slate-700">Existing Candidates in {form.sheetName}</h2>
+            </div>
+            <span className="text-xs font-medium text-slate-400 bg-slate-100 px-2.5 py-1 rounded-full">
+              {existingCandidates.length} records
+            </span>
+          </div>
+
+          {candidatesLoading ? (
+            <div className="flex items-center justify-center py-10">
+              <Loader2 size={20} className="animate-spin text-indigo-400" />
+            </div>
+          ) : existingCandidates.length === 0 ? (
+            <div className="py-10 text-center">
+              <p className="text-sm text-slate-400">No candidates found in this assembly yet.</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto max-h-72 overflow-y-auto">
+              <table className="w-full text-sm">
+                <thead className="sticky top-0 bg-slate-50 border-b border-slate-100">
+                  <tr>
+                    <th className="py-2.5 px-5 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-400">#</th>
+                    <th className="py-2.5 px-5 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-400">Name</th>
+                    <th className="py-2.5 px-5 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-400">Mobile</th>
+                    <th className="py-2.5 px-5 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-400">Party</th>
+                    <th className="py-2.5 px-5 text-center text-[11px] font-semibold uppercase tracking-wider text-slate-400">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-50">
+                  {existingCandidates.map((c, i) => (
+                    <tr key={c.row} className="hover:bg-slate-50/50 transition-colors">
+                      <td className="py-2.5 px-5 text-slate-400 text-xs">{i + 1}</td>
+                      <td className="py-2.5 px-5 font-medium text-slate-800">{c.name}</td>
+                      <td className="py-2.5 px-5 text-slate-500 font-mono text-xs">{c.mobile || "N/A"}</td>
+                      <td className="py-2.5 px-5 text-slate-500">{c.partyName || "—"}</td>
+                      <td className="py-2.5 px-5 text-center">
+                        <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold ${
+                          c.status?.toLowerCase() === 'accepted' ? 'bg-emerald-50 text-emerald-700' :
+                          c.status?.toLowerCase() === 'rejected' ? 'bg-rose-50 text-rose-700' :
+                          'bg-amber-50 text-amber-700'
+                        }`}>
+                          {c.status?.toLowerCase() === 'accepted' ? 'Accepted' :
+                           c.status?.toLowerCase() === 'rejected' ? 'Rejected' : 'Pending'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
