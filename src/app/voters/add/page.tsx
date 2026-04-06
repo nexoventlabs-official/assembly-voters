@@ -375,7 +375,7 @@ export default function AddCandidatePage() {
               <p className="text-sm text-slate-400">No candidates found in this assembly yet.</p>
             </div>
           ) : (
-            <div className="overflow-x-auto max-h-72 overflow-y-auto">
+            <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="sticky top-0 bg-slate-50 border-b border-slate-100">
                   <tr>
