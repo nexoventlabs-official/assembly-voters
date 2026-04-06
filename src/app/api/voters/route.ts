@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   getVotersFromSheet,
   addVoter,
+  updateVoterStatus,
 } from "@/lib/google-sheets";
 
 export async function GET(request: NextRequest) {
@@ -49,6 +50,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check existing candidates for name + party match before adding
+    const existingVoters = await getVotersFromSheet(sheetName);
+    const normalize = (s: string) => (s || "").trim().toLowerCase();
+    const isDuplicate = existingVoters.some(
+      (v) => normalize(v.name) === normalize(name) && normalize(v.partyName) === normalize(partyName || "")
+    );
+
     await addVoter(sheetName, {
       name,
       email: email || "N/A",
@@ -60,7 +68,16 @@ export async function POST(request: NextRequest) {
       isDuplicate: false,
     });
 
-    return NextResponse.json({ success: true });
+    // If duplicate detected, mark the newly added row
+    if (isDuplicate) {
+      const updatedVoters = await getVotersFromSheet(sheetName);
+      const newRow = updatedVoters[updatedVoters.length - 1]?.row;
+      if (newRow) {
+        await updateVoterStatus(sheetName, newRow, "duplicate");
+      }
+    }
+
+    return NextResponse.json({ success: true, isDuplicate });
   } catch (error) {
     console.error("Error adding voter:", error);
     return NextResponse.json(
