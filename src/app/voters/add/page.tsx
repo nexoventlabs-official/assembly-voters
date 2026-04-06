@@ -123,12 +123,16 @@ export default function AddCandidatePage() {
       });
 
       const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || "Failed to add candidate record");
+
+      // Duplicate detected - show warning, don't add
+      if (res.status === 409 && data.error === "duplicate") {
+        setDuplicateWarning(true);
+        setLoading(false);
+        return;
       }
 
-      if (data.isDuplicate) {
-        setDuplicateWarning(true);
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to add candidate record");
       }
 
       setSuccess(true);
@@ -146,8 +150,7 @@ export default function AddCandidatePage() {
 
       setTimeout(() => {
         setSuccess(false);
-        setDuplicateWarning(false);
-      }, 6000);
+      }, 4000);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "System error occurred");
     } finally {
@@ -198,7 +201,7 @@ export default function AddCandidatePage() {
           <AlertTriangle size={20} strokeWidth={2.5} />
           <div>
             <p className="text-sm font-semibold">This candidate already exists in this assembly!</p>
-            <p className="text-xs text-orange-500 mt-0.5">A candidate with the same name and party was found. The entry has been added and automatically marked as duplicate.</p>
+            <p className="text-xs text-orange-500 mt-0.5">A candidate with the same name and party was found. The candidate was not added.</p>
           </div>
         </div>
       )}

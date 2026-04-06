@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   getVotersFromSheet,
   addVoter,
-  updateVoterStatus,
 } from "@/lib/google-sheets";
 
 export async function GET(request: NextRequest) {
@@ -57,6 +56,13 @@ export async function POST(request: NextRequest) {
       (v) => normalize(v.name) === normalize(name) && normalize(v.partyName) === normalize(partyName || "")
     );
 
+    if (isDuplicate) {
+      return NextResponse.json(
+        { error: "duplicate", message: "A candidate with the same name and party already exists in this assembly." },
+        { status: 409 }
+      );
+    }
+
     await addVoter(sheetName, {
       name,
       email: email || "N/A",
@@ -68,16 +74,7 @@ export async function POST(request: NextRequest) {
       isDuplicate: false,
     });
 
-    // If duplicate detected, mark the newly added row
-    if (isDuplicate) {
-      const updatedVoters = await getVotersFromSheet(sheetName);
-      const newRow = updatedVoters[updatedVoters.length - 1]?.row;
-      if (newRow) {
-        await updateVoterStatus(sheetName, newRow, "duplicate");
-      }
-    }
-
-    return NextResponse.json({ success: true, isDuplicate });
+    return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Error adding voter:", error);
     return NextResponse.json(
