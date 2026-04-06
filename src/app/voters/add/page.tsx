@@ -7,6 +7,7 @@ import {
   Loader2,
   CheckCircle,
   AlertCircle,
+  AlertTriangle,
   ChevronDown,
   Users,
   Copy,
@@ -28,6 +29,7 @@ export default function AddCandidatePage() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
+  const [duplicateWarning, setDuplicateWarning] = useState(false);
   const [existingCandidates, setExistingCandidates] = useState<Candidate[]>([]);
   const [candidatesLoading, setCandidatesLoading] = useState(false);
   const [markingDuplicate, setMarkingDuplicate] = useState<number | null>(null);
@@ -105,6 +107,7 @@ export default function AddCandidatePage() {
     e.preventDefault();
     setError("");
     setSuccess(false);
+    setDuplicateWarning(false);
 
     if (!form.sheetName || !form.name) {
       setError("Assembly and candidate name are required fields.");
@@ -119,9 +122,13 @@ export default function AddCandidatePage() {
         body: JSON.stringify(form),
       });
 
+      const data = await res.json();
       if (!res.ok) {
-        const data = await res.json();
         throw new Error(data.error || "Failed to add candidate record");
+      }
+
+      if (data.isDuplicate) {
+        setDuplicateWarning(true);
       }
 
       setSuccess(true);
@@ -139,7 +146,8 @@ export default function AddCandidatePage() {
 
       setTimeout(() => {
         setSuccess(false);
-      }, 4000);
+        setDuplicateWarning(false);
+      }, 6000);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "System error occurred");
     } finally {
@@ -177,10 +185,21 @@ export default function AddCandidatePage() {
       </div>
 
       {/* Success Message */}
-      {success && (
+      {success && !duplicateWarning && (
         <div className="mb-6 flex items-center gap-3 bg-emerald-50 border border-emerald-200 rounded-xl px-5 py-4 text-emerald-700">
           <CheckCircle size={20} strokeWidth={2.5} />
           <p className="text-sm font-medium">Candidate registered successfully!</p>
+        </div>
+      )}
+
+      {/* Duplicate Warning */}
+      {duplicateWarning && (
+        <div className="mb-6 flex items-center gap-3 bg-orange-50 border border-orange-200 rounded-xl px-5 py-4 text-orange-700">
+          <AlertTriangle size={20} strokeWidth={2.5} />
+          <div>
+            <p className="text-sm font-semibold">This candidate already exists in this assembly!</p>
+            <p className="text-xs text-orange-500 mt-0.5">A candidate with the same name and party was found. The entry has been added and automatically marked as duplicate.</p>
+          </div>
         </div>
       )}
 
