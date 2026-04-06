@@ -58,8 +58,6 @@ function getStatusFromColor(bgColor?: { red?: number; green?: number; blue?: num
   if (g > 0.9 && r < 0.9 && b < 0.9) return "accepted";
   // Red row = rejected (r > 0.9, g < 0.9)
   if (r > 0.9 && g < 0.9 && b < 0.9) return "rejected";
-  // Orange row = duplicate (r > 0.9, g ~0.9, b < 0.85)
-  if (r > 0.9 && g > 0.85 && g < 0.95 && b < 0.8) return "duplicate";
   return "pending";
 }
 
@@ -227,19 +225,28 @@ export async function updateVoterStatus(
   row: number,
   status: string
 ): Promise<void> {
-  // Write status text in column G for duplicate, clear for others
-  const statusText = status.toLowerCase() === "duplicate" ? "Duplicate" : "";
-  await sheets.spreadsheets.values.update({
-    spreadsheetId: SPREADSHEET_ID,
-    range: `'${sheetName}'!G${row}`,
-    valueInputOption: "USER_ENTERED",
-    requestBody: {
-      values: [[statusText]],
-    },
-  });
-
-  // Apply row background color on columns A-F
-  await applyRowColor(sheetName, row, status);
+  if (status.toLowerCase() === "duplicate") {
+    // Duplicate: only write text in column G, no row color change
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: SPREADSHEET_ID,
+      range: `'${sheetName}'!G${row}`,
+      valueInputOption: "USER_ENTERED",
+      requestBody: {
+        values: [["Duplicate"]],
+      },
+    });
+  } else {
+    // Accepted/rejected/pending: clear column G, apply row color
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: SPREADSHEET_ID,
+      range: `'${sheetName}'!G${row}`,
+      valueInputOption: "USER_ENTERED",
+      requestBody: {
+        values: [[""]],
+      },
+    });
+    await applyRowColor(sheetName, row, status);
+  }
 }
 
 async function getSheetId(sheetName: string): Promise<number> {
@@ -266,8 +273,6 @@ async function applyRowColor(
     bgColor = { red: 0.85, green: 0.95, blue: 0.85 }; // light green
   } else if (s === "rejected") {
     bgColor = { red: 0.95, green: 0.85, blue: 0.85 }; // light red
-  } else if (s === "duplicate") {
-    bgColor = { red: 1.0, green: 0.9, blue: 0.7 }; // light orange
   } else {
     bgColor = { red: 1, green: 1, blue: 1 }; // white for pending
   }
