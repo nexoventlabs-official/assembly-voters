@@ -51,8 +51,8 @@ export async function POST(request: NextRequest) {
 
     await addVoter(sheetName, {
       name,
-      email: email || "",
-      mobile: mobile || "",
+      email: email || "N/A",
+      mobile: mobile || "N/A",
       optionalMobile: optionalMobile || "",
       partyName: partyName || "",
       assemblyName: assemblyName || sheetName,

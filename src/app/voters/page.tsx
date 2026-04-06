@@ -152,6 +152,9 @@ function VotersContent() {
     }
   };
 
+  const hasMobile = (val?: string) => !!val && val.trim() !== "" && val.trim().toUpperCase() !== "N/A";
+  const hasEmail = (val?: string) => !!val && val.trim() !== "" && val.trim().toUpperCase() !== "N/A";
+
   const openWhatsApp = (mobile: string) => {
     const cleaned = mobile.replace(/[^0-9]/g, "");
     window.open(`https://wa.me/${cleaned}`, "_blank");
@@ -356,26 +359,26 @@ function VotersContent() {
                         onClick={(e) => e.stopPropagation()}
                       >
                         <button
-                          onClick={() => voter.mobile && openWhatsApp(voter.mobile)}
-                          disabled={!voter.mobile}
-                          className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${voter.mobile ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100' : 'bg-slate-100 text-slate-300 cursor-not-allowed'}`}
-                          title={voter.mobile ? 'WhatsApp' : 'No mobile number'}
+                          onClick={() => hasMobile(voter.mobile) && openWhatsApp(voter.mobile)}
+                          disabled={!hasMobile(voter.mobile)}
+                          className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${hasMobile(voter.mobile) ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100' : 'bg-slate-100 text-slate-300 cursor-not-allowed'}`}
+                          title={hasMobile(voter.mobile) ? 'WhatsApp' : 'No mobile number'}
                         >
                           <WhatsAppIcon size={15} />
                         </button>
                         <a
-                          href={voter.mobile ? `tel:${voter.mobile}` : undefined}
-                          onClick={(e) => !voter.mobile && e.preventDefault()}
-                          className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${voter.mobile ? 'bg-blue-50 text-blue-600 hover:bg-blue-100' : 'bg-slate-100 text-slate-300 cursor-not-allowed'}`}
-                          title={voter.mobile ? 'Call' : 'No mobile number'}
+                          href={hasMobile(voter.mobile) ? `tel:${voter.mobile}` : undefined}
+                          onClick={(e) => !hasMobile(voter.mobile) && e.preventDefault()}
+                          className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${hasMobile(voter.mobile) ? 'bg-blue-50 text-blue-600 hover:bg-blue-100' : 'bg-slate-100 text-slate-300 cursor-not-allowed'}`}
+                          title={hasMobile(voter.mobile) ? 'Call' : 'No mobile number'}
                         >
                           <Phone size={14} />
                         </a>
                         <button
-                          onClick={() => voter.email && openMail(voter.email)}
-                          disabled={!voter.email}
-                          className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${voter.email ? 'bg-violet-50 text-violet-600 hover:bg-violet-100' : 'bg-slate-100 text-slate-300 cursor-not-allowed'}`}
-                          title={voter.email ? 'Email' : 'No email address'}
+                          onClick={() => hasEmail(voter.email) && openMail(voter.email)}
+                          disabled={!hasEmail(voter.email)}
+                          className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${hasEmail(voter.email) ? 'bg-violet-50 text-violet-600 hover:bg-violet-100' : 'bg-slate-100 text-slate-300 cursor-not-allowed'}`}
+                          title={hasEmail(voter.email) ? 'Email' : 'No email address'}
                         >
                           <Mail size={14} />
                         </button>
@@ -470,23 +473,23 @@ function VotersContent() {
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">Quick Actions</h3>
                 <div className="flex flex-wrap items-center gap-2">
                   <button
-                    onClick={() => selectedVoter.mobile && openWhatsApp(selectedVoter.mobile)}
-                    disabled={!selectedVoter.mobile}
-                    className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors border ${selectedVoter.mobile ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-100' : 'bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed'}`}
+                    onClick={() => hasMobile(selectedVoter.mobile) && openWhatsApp(selectedVoter.mobile)}
+                    disabled={!hasMobile(selectedVoter.mobile)}
+                    className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors border ${hasMobile(selectedVoter.mobile) ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-100' : 'bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed'}`}
                   >
                     <WhatsAppIcon size={15} /> WhatsApp
                   </button>
                   <button
-                    onClick={() => selectedVoter.email && openMail(selectedVoter.email)}
-                    disabled={!selectedVoter.email}
-                    className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors border ${selectedVoter.email ? 'bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-100' : 'bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed'}`}
+                    onClick={() => hasEmail(selectedVoter.email) && openMail(selectedVoter.email)}
+                    disabled={!hasEmail(selectedVoter.email)}
+                    className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors border ${hasEmail(selectedVoter.email) ? 'bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-100' : 'bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed'}`}
                   >
                     <Mail size={15} /> Email
                   </button>
                   <a
-                    href={selectedVoter.mobile ? `tel:${selectedVoter.mobile}` : undefined}
-                    onClick={(e) => !selectedVoter.mobile && e.preventDefault()}
-                    className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors border ${selectedVoter.mobile ? 'bg-violet-50 hover:bg-violet-100 text-violet-700 border-violet-100' : 'bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed'}`}
+                    href={hasMobile(selectedVoter.mobile) ? `tel:${selectedVoter.mobile}` : undefined}
+                    onClick={(e) => !hasMobile(selectedVoter.mobile) && e.preventDefault()}
+                    className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors border ${hasMobile(selectedVoter.mobile) ? 'bg-violet-50 hover:bg-violet-100 text-violet-700 border-violet-100' : 'bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed'}`}
                   >
                     <Phone size={15} /> Call
                   </a>
