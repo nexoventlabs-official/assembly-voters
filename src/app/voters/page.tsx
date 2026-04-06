@@ -15,8 +15,7 @@ import {
   Clock,
   Loader2,
   UserPlus,
-  Building2,
-  Copy
+  Building2
 } from "lucide-react";
 import Link from "next/link";
 import WhatsAppIcon from "@/components/WhatsAppIcon";
@@ -30,6 +29,7 @@ interface Voter {
   partyName: string;
   assemblyName: string;
   status: string;
+  isDuplicate: boolean;
   sheetName: string;
 }
 
@@ -142,12 +142,6 @@ function VotersContent() {
         return (
           <span className="inline-flex items-center gap-1.5 bg-rose-50 text-rose-700 rounded-full px-3 py-1 text-xs font-semibold">
             <XCircle size={12} strokeWidth={2.5} /> Rejected
-          </span>
-        );
-      case "duplicate":
-        return (
-          <span className="inline-flex items-center gap-1.5 bg-orange-50 text-orange-700 rounded-full px-3 py-1 text-xs font-semibold">
-            <Copy size={12} strokeWidth={2.5} /> Duplicate
           </span>
         );
       default:
@@ -337,9 +331,16 @@ function VotersContent() {
                           {voter.name?.charAt(0)?.toUpperCase() || "V"}
                         </div>
                         <div>
-                          <p className="font-medium text-slate-800">
-                            {voter.name || "—"}
-                          </p>
+                          <div className="flex items-center gap-1.5">
+                            <p className="font-medium text-slate-800">
+                              {voter.name || "—"}
+                            </p>
+                            {voter.isDuplicate && (
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wide bg-orange-100 text-orange-600 border border-orange-200">
+                                Duplicate
+                              </span>
+                            )}
+                          </div>
                           <p className="text-xs text-slate-400 md:hidden mt-0.5">
                             {voter.mobile}
                           </p>
@@ -426,7 +427,14 @@ function VotersContent() {
                   {selectedVoter.name?.charAt(0)?.toUpperCase() || "V"}
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-slate-900">{selectedVoter.name || "Unknown Constituent"}</h2>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-lg font-bold text-slate-900">{selectedVoter.name || "Unknown Constituent"}</h2>
+                    {selectedVoter.isDuplicate && (
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wide bg-orange-100 text-orange-600 border border-orange-200">
+                        Duplicate
+                      </span>
+                    )}
+                  </div>
                   <p className="text-sm text-slate-500 font-medium flex items-center gap-1.5 mt-0.5">
                     <Building2 size={12} /> {selectedVoter.assemblyName || selectedVoter.sheetName}
                   </p>

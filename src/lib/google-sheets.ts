@@ -34,6 +34,7 @@ export interface Voter {
   partyName: string;
   assemblyName: string;
   status: string;
+  isDuplicate: boolean;
   sheetName: string;
 }
 
@@ -106,13 +107,16 @@ export async function getVotersFromSheet(
         optionalMobile = colG;
       }
 
+      // Check if candidate is marked as duplicate (column G text)
+      const isDuplicate = colG.toLowerCase() === "duplicate";
+
       // Read status from row background color first, fall back to column G/H text
       const cellFormat = rowData[actualRowIndex]?.values?.[0]?.userEnteredFormat;
       const bgColor = cellFormat?.backgroundColor;
       let status = getStatusFromColor(bgColor as { red?: number; green?: number; blue?: number });
 
-      // Fallback: if color says pending, check text columns for legacy data
-      if (status === "pending") {
+      // Fallback: if color says pending, check text columns for legacy data (skip "Duplicate" text)
+      if (status === "pending" && !isDuplicate) {
         if (phoneRaw.includes("/")) {
           status = colG || "pending";
         } else if (colG && /^\d+$/.test(colG)) {
@@ -131,6 +135,7 @@ export async function getVotersFromSheet(
         assemblyName: row[5] || sheetName,
         optionalMobile,
         status,
+        isDuplicate,
         sheetName,
       };
     });

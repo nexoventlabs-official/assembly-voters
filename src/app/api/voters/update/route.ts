@@ -26,6 +26,7 @@ export async function PUT(request: NextRequest) {
         partyName: partyName || "",
         assemblyName: assemblyName || sheetName,
         status: status || "pending",
+        isDuplicate: false,
       });
     }
 

@@ -57,6 +57,7 @@ export async function POST(request: NextRequest) {
       partyName: partyName || "",
       assemblyName: assemblyName || sheetName,
       status: "pending",
+      isDuplicate: false,
     });
 
     return NextResponse.json({ success: true });

@@ -20,6 +20,7 @@ interface Candidate {
   mobile: string;
   partyName: string;
   status: string;
+  isDuplicate: boolean;
 }
 
 export default function AddCandidatePage() {
@@ -390,23 +391,30 @@ export default function AddCandidatePage() {
                   {existingCandidates.map((c, i) => (
                     <tr key={c.row} className="hover:bg-slate-50/50 transition-colors">
                       <td className="py-2.5 px-5 text-slate-400 text-xs">{i + 1}</td>
-                      <td className="py-2.5 px-5 font-medium text-slate-800">{c.name}</td>
+                      <td className="py-2.5 px-5 font-medium text-slate-800">
+                        <div className="flex items-center gap-1.5">
+                          {c.name}
+                          {c.isDuplicate && (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wide bg-orange-100 text-orange-600 border border-orange-200">
+                              Duplicate
+                            </span>
+                          )}
+                        </div>
+                      </td>
                       <td className="py-2.5 px-5 text-slate-500 font-mono text-xs">{c.mobile || "N/A"}</td>
                       <td className="py-2.5 px-5 text-slate-500">{c.partyName || "—"}</td>
                       <td className="py-2.5 px-5 text-center">
                         <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold ${
                           c.status?.toLowerCase() === 'accepted' ? 'bg-emerald-50 text-emerald-700' :
                           c.status?.toLowerCase() === 'rejected' ? 'bg-rose-50 text-rose-700' :
-                          c.status?.toLowerCase() === 'duplicate' ? 'bg-orange-50 text-orange-700' :
                           'bg-amber-50 text-amber-700'
                         }`}>
                           {c.status?.toLowerCase() === 'accepted' ? 'Accepted' :
-                           c.status?.toLowerCase() === 'rejected' ? 'Rejected' :
-                           c.status?.toLowerCase() === 'duplicate' ? 'Duplicate' : 'Pending'}
+                           c.status?.toLowerCase() === 'rejected' ? 'Rejected' : 'Pending'}
                         </span>
                       </td>
                       <td className="py-2.5 px-5 text-center">
-                        {c.status?.toLowerCase() === 'duplicate' ? (
+                        {c.isDuplicate ? (
                           <span className="text-[10px] text-orange-500 font-medium">Marked</span>
                         ) : (
                           <button
