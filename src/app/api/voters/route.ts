@@ -63,9 +63,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Sanitize: strip non-digit chars from phone, trim spaces from email
-    const cleanPhone = (val: string) => val ? val.replace(/\D/g, "") : "";
-    const cleanEmail = (val: string) => val ? val.trim() : "";
+    // Sanitize: strip non-digit chars from phone (including trailing dots), lowercase + trim email
+    const cleanPhone = (val: string) => val ? val.replace(/[^0-9]/g, "") : "";
+    const cleanEmail = (val: string) => val ? val.trim().toLowerCase().replace(/[.\s]+$/, "") : "";
 
     const sanitizedMobile = cleanPhone(mobile) || "N/A";
     const sanitizedOptionalMobile = cleanPhone(optionalMobile);
