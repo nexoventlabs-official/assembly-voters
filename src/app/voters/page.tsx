@@ -15,7 +15,8 @@ import {
   Clock,
   Loader2,
   UserPlus,
-  Building2
+  Building2,
+  Copy
 } from "lucide-react";
 import Link from "next/link";
 import WhatsAppIcon from "@/components/WhatsAppIcon";
@@ -141,6 +142,12 @@ function VotersContent() {
         return (
           <span className="inline-flex items-center gap-1.5 bg-rose-50 text-rose-700 rounded-full px-3 py-1 text-xs font-semibold">
             <XCircle size={12} strokeWidth={2.5} /> Rejected
+          </span>
+        );
+      case "duplicate":
+        return (
+          <span className="inline-flex items-center gap-1.5 bg-orange-50 text-orange-700 rounded-full px-3 py-1 text-xs font-semibold">
+            <Copy size={12} strokeWidth={2.5} /> Duplicate
           </span>
         );
       default:

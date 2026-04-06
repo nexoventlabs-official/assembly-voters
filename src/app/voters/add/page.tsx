@@ -9,6 +9,7 @@ import {
   AlertCircle,
   ChevronDown,
   Users,
+  Copy,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -28,6 +29,7 @@ export default function AddCandidatePage() {
   const [error, setError] = useState("");
   const [existingCandidates, setExistingCandidates] = useState<Candidate[]>([]);
   const [candidatesLoading, setCandidatesLoading] = useState(false);
+  const [markingDuplicate, setMarkingDuplicate] = useState<number | null>(null);
 
   const [form, setForm] = useState({
     sheetName: "",
@@ -66,6 +68,26 @@ export default function AddCandidatePage() {
       setExistingCandidates([]);
     } finally {
       setCandidatesLoading(false);
+    }
+  };
+
+  const markAsDuplicate = async (candidate: Candidate) => {
+    setMarkingDuplicate(candidate.row);
+    try {
+      await fetch("/api/voters/update", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sheetName: form.sheetName,
+          row: candidate.row,
+          status: "duplicate",
+        }),
+      });
+      fetchCandidates(form.sheetName);
+    } catch {
+      console.error("Failed to mark as duplicate");
+    } finally {
+      setMarkingDuplicate(null);
     }
   };
 
@@ -359,6 +381,7 @@ export default function AddCandidatePage() {
                     <th className="py-2.5 px-5 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-400">Mobile</th>
                     <th className="py-2.5 px-5 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-400">Party</th>
                     <th className="py-2.5 px-5 text-center text-[11px] font-semibold uppercase tracking-wider text-slate-400">Status</th>
+                    <th className="py-2.5 px-5 text-center text-[11px] font-semibold uppercase tracking-wider text-slate-400">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
@@ -372,11 +395,32 @@ export default function AddCandidatePage() {
                         <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold ${
                           c.status?.toLowerCase() === 'accepted' ? 'bg-emerald-50 text-emerald-700' :
                           c.status?.toLowerCase() === 'rejected' ? 'bg-rose-50 text-rose-700' :
+                          c.status?.toLowerCase() === 'duplicate' ? 'bg-orange-50 text-orange-700' :
                           'bg-amber-50 text-amber-700'
                         }`}>
                           {c.status?.toLowerCase() === 'accepted' ? 'Accepted' :
-                           c.status?.toLowerCase() === 'rejected' ? 'Rejected' : 'Pending'}
+                           c.status?.toLowerCase() === 'rejected' ? 'Rejected' :
+                           c.status?.toLowerCase() === 'duplicate' ? 'Duplicate' : 'Pending'}
                         </span>
+                      </td>
+                      <td className="py-2.5 px-5 text-center">
+                        {c.status?.toLowerCase() === 'duplicate' ? (
+                          <span className="text-[10px] text-orange-500 font-medium">Marked</span>
+                        ) : (
+                          <button
+                            onClick={() => markAsDuplicate(c)}
+                            disabled={markingDuplicate === c.row}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium bg-orange-50 text-orange-600 hover:bg-orange-100 transition-colors border border-orange-100 disabled:opacity-50"
+                            title="Mark as duplicate"
+                          >
+                            {markingDuplicate === c.row ? (
+                              <Loader2 size={11} className="animate-spin" />
+                            ) : (
+                              <Copy size={11} />
+                            )}
+                            Duplicate
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))}
