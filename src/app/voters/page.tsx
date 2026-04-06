@@ -194,7 +194,7 @@ function VotersContent() {
           className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-medium text-sm transition-colors shadow-sm"
         >
           <UserPlus size={16} />
-          Add Voter
+          Add Candidate
         </Link>
       </div>
 
@@ -355,33 +355,30 @@ function VotersContent() {
                         className="flex items-center justify-center gap-1.5"
                         onClick={(e) => e.stopPropagation()}
                       >
-                        {voter.mobile && (
-                          <button
-                            onClick={() => openWhatsApp(voter.mobile)}
-                            className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600 hover:bg-emerald-100 transition-colors"
-                            title="WhatsApp"
-                          >
-                            <WhatsAppIcon size={15} />
-                          </button>
-                        )}
-                        {voter.mobile && (
-                          <a
-                            href={`tel:${voter.mobile}`}
-                            className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 hover:bg-blue-100 transition-colors"
-                            title="Call"
-                          >
-                            <Phone size={14} />
-                          </a>
-                        )}
-                        {voter.email && (
-                          <button
-                            onClick={() => openMail(voter.email)}
-                            className="w-8 h-8 rounded-lg bg-violet-50 flex items-center justify-center text-violet-600 hover:bg-violet-100 transition-colors"
-                            title="Email"
-                          >
-                            <Mail size={14} />
-                          </button>
-                        )}
+                        <button
+                          onClick={() => voter.mobile && openWhatsApp(voter.mobile)}
+                          disabled={!voter.mobile}
+                          className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${voter.mobile ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100' : 'bg-slate-100 text-slate-300 cursor-not-allowed'}`}
+                          title={voter.mobile ? 'WhatsApp' : 'No mobile number'}
+                        >
+                          <WhatsAppIcon size={15} />
+                        </button>
+                        <a
+                          href={voter.mobile ? `tel:${voter.mobile}` : undefined}
+                          onClick={(e) => !voter.mobile && e.preventDefault()}
+                          className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${voter.mobile ? 'bg-blue-50 text-blue-600 hover:bg-blue-100' : 'bg-slate-100 text-slate-300 cursor-not-allowed'}`}
+                          title={voter.mobile ? 'Call' : 'No mobile number'}
+                        >
+                          <Phone size={14} />
+                        </a>
+                        <button
+                          onClick={() => voter.email && openMail(voter.email)}
+                          disabled={!voter.email}
+                          className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${voter.email ? 'bg-violet-50 text-violet-600 hover:bg-violet-100' : 'bg-slate-100 text-slate-300 cursor-not-allowed'}`}
+                          title={voter.email ? 'Email' : 'No email address'}
+                        >
+                          <Mail size={14} />
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -472,30 +469,27 @@ function VotersContent() {
               <div>
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">Quick Actions</h3>
                 <div className="flex flex-wrap items-center gap-2">
-                  {selectedVoter.mobile && (
-                    <button
-                      onClick={() => openWhatsApp(selectedVoter.mobile)}
-                      className="flex items-center gap-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors border border-emerald-100"
-                    >
-                      <WhatsAppIcon size={15} /> WhatsApp
-                    </button>
-                  )}
-                  {selectedVoter.email && (
-                    <button
-                      onClick={() => openMail(selectedVoter.email)}
-                      className="flex items-center gap-2 bg-blue-50 hover:bg-blue-100 text-blue-700 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors border border-blue-100"
-                    >
-                      <Mail size={15} /> Email
-                    </button>
-                  )}
-                  {selectedVoter.mobile && (
-                    <a
-                      href={`tel:${selectedVoter.mobile}`}
-                      className="flex items-center gap-2 bg-violet-50 hover:bg-violet-100 text-violet-700 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors border border-violet-100"
-                    >
-                      <Phone size={15} /> Call
-                    </a>
-                  )}
+                  <button
+                    onClick={() => selectedVoter.mobile && openWhatsApp(selectedVoter.mobile)}
+                    disabled={!selectedVoter.mobile}
+                    className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors border ${selectedVoter.mobile ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-100' : 'bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed'}`}
+                  >
+                    <WhatsAppIcon size={15} /> WhatsApp
+                  </button>
+                  <button
+                    onClick={() => selectedVoter.email && openMail(selectedVoter.email)}
+                    disabled={!selectedVoter.email}
+                    className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors border ${selectedVoter.email ? 'bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-100' : 'bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed'}`}
+                  >
+                    <Mail size={15} /> Email
+                  </button>
+                  <a
+                    href={selectedVoter.mobile ? `tel:${selectedVoter.mobile}` : undefined}
+                    onClick={(e) => !selectedVoter.mobile && e.preventDefault()}
+                    className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors border ${selectedVoter.mobile ? 'bg-violet-50 hover:bg-violet-100 text-violet-700 border-violet-100' : 'bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed'}`}
+                  >
+                    <Phone size={15} /> Call
+                  </a>
                 </div>
               </div>
 

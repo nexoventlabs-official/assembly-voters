@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
-export default function AddVoterPage() {
+export default function AddCandidatePage() {
   const [sheets, setSheets] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -55,8 +55,8 @@ export default function AddVoterPage() {
     setError("");
     setSuccess(false);
 
-    if (!form.sheetName || !form.name || !form.mobile) {
-      setError("Assembly, constituent name, and primary mobile number are required fields.");
+    if (!form.sheetName || !form.name) {
+      setError("Assembly and candidate name are required fields.");
       return;
     }
 
@@ -70,7 +70,7 @@ export default function AddVoterPage() {
 
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || "Failed to add constituent record");
+        throw new Error(data.error || "Failed to add candidate record");
       }
 
       setSuccess(true);
@@ -101,7 +101,7 @@ export default function AddVoterPage() {
         className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-slate-800 transition-colors mb-6"
       >
         <ArrowLeft size={16} />
-        Back to Voter Database
+        Back to Candidate Database
       </Link>
 
       {/* Header */}
@@ -112,10 +112,10 @@ export default function AddVoterPage() {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-              Add New Voter
+              Add New Candidate
             </h1>
             <p className="text-slate-500 text-sm mt-0.5">
-              Register a new constituent into the assembly database.
+              Register a new candidate into the assembly database.
             </p>
           </div>
         </div>
@@ -125,7 +125,7 @@ export default function AddVoterPage() {
       {success && (
         <div className="mb-6 flex items-center gap-3 bg-emerald-50 border border-emerald-200 rounded-xl px-5 py-4 text-emerald-700">
           <CheckCircle size={20} strokeWidth={2.5} />
-          <p className="text-sm font-medium">Voter registered successfully!</p>
+          <p className="text-sm font-medium">Candidate registered successfully!</p>
         </div>
       )}
 
@@ -142,7 +142,7 @@ export default function AddVoterPage() {
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
           {/* Form Section Header */}
           <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
-            <h2 className="text-sm font-semibold text-slate-700">Voter Details</h2>
+            <h2 className="text-sm font-semibold text-slate-700">Candidate Details</h2>
             <p className="text-xs text-slate-400 mt-0.5">Fields marked with <span className="text-rose-500">*</span> are required</p>
           </div>
 
@@ -203,7 +203,7 @@ export default function AddVoterPage() {
               {/* Mobile Numbers */}
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                  Primary Mobile <span className="text-rose-500">*</span>
+                  Primary Mobile
                 </label>
                 <input
                   type="tel"
@@ -283,7 +283,7 @@ export default function AddVoterPage() {
               ) : (
                 <>
                   <UserPlus size={16} />
-                  Register Voter
+                  Register Candidate
                 </>
               )}
             </button>

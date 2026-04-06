@@ -42,9 +42,9 @@ export async function POST(request: NextRequest) {
     const { sheetName, name, email, mobile, optionalMobile, partyName, assemblyName } =
       body;
 
-    if (!sheetName || !name || !mobile) {
+    if (!sheetName || !name) {
       return NextResponse.json(
-        { error: "Sheet name, voter name, and mobile are required" },
+        { error: "Sheet name and candidate name are required" },
         { status: 400 }
       );
     }
@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
     await addVoter(sheetName, {
       name,
       email: email || "",
-      mobile,
+      mobile: mobile || "",
       optionalMobile: optionalMobile || "",
       partyName: partyName || "",
       assemblyName: assemblyName || sheetName,
