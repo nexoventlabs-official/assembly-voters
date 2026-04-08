@@ -88,12 +88,11 @@ export async function getVotersFromSheet(
       // Check if candidate is marked as duplicate (column G text)
       const isDuplicate = colG.toLowerCase() === "duplicate";
 
-      // Read status from column G text
+      // Read status from column H
+      const colH = (row[7] || "").toString().trim();
       let status = "pending";
-      if (!isDuplicate) {
-        if (colG && !/^\d+$/.test(colG)) {
-          status = colG;
-        }
+      if (colH) {
+        status = colH;
       }
 
       return {
@@ -174,10 +173,10 @@ export async function addVoter(
   // Status: don't write "pending" to sheet, leave blank
   const statusValue = voter.status && voter.status.toLowerCase() !== "pending" ? voter.status : "";
 
-  // Columns: A=S.No, B=Name, C=Email, D=Phone.No, E=Party Name, F=Assembly Name, G=Status
+  // Columns: A=S.No, B=Name, C=Email, D=Phone.No, E=Party Name, F=Assembly Name, G=(duplicate), H=Status
   await sheets.spreadsheets.values.append({
     spreadsheetId: SPREADSHEET_ID,
-    range: `'${sheetName}'!A:G`,
+    range: `'${sheetName}'!A:H`,
     valueInputOption: "USER_ENTERED",
     requestBody: {
       values: [
@@ -188,6 +187,7 @@ export async function addVoter(
           phoneValue,
           voter.partyName,
           voter.assemblyName,
+          "",
           statusValue,
         ],
       ],
@@ -200,18 +200,28 @@ export async function updateVoterStatus(
   row: number,
   status: string
 ): Promise<void> {
-  // Write status text in column G (no colors)
-  const statusText = status.toLowerCase() === "duplicate" ? "Duplicate" :
-    status.toLowerCase() === "accepted" ? "accepted" : "";
-
-  await sheets.spreadsheets.values.update({
-    spreadsheetId: SPREADSHEET_ID,
-    range: `'${sheetName}'!G${row}`,
-    valueInputOption: "USER_ENTERED",
-    requestBody: {
-      values: [[statusText]],
-    },
-  });
+  if (status.toLowerCase() === "duplicate") {
+    // Write "Duplicate" in column G
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: SPREADSHEET_ID,
+      range: `'${sheetName}'!G${row}`,
+      valueInputOption: "USER_ENTERED",
+      requestBody: {
+        values: [["Duplicate"]],
+      },
+    });
+  } else {
+    // Write status in column H (accepted, etc.)
+    const statusText = status.toLowerCase() === "accepted" ? "accepted" : "";
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: SPREADSHEET_ID,
+      range: `'${sheetName}'!H${row}`,
+      valueInputOption: "USER_ENTERED",
+      requestBody: {
+        values: [[statusText]],
+      },
+    });
+  }
 }
 
 async function getSheetId(sheetName: string): Promise<number> {
@@ -280,12 +290,13 @@ export async function updateVoter(
     ? `${voter.mobile} / ${voter.optionalMobile}`
     : voter.mobile;
 
-  // Columns: B=Name, C=Email, D=Phone.No, E=Party Name, F=Assembly Name, G=Status
+  // Columns: B=Name, C=Email, D=Phone.No, E=Party Name, F=Assembly Name, G=(keep as-is), H=Status
   const statusText = voter.status?.toLowerCase() === "accepted" ? "accepted" : "";
 
+  // Update B-F (candidate data)
   await sheets.spreadsheets.values.update({
     spreadsheetId: SPREADSHEET_ID,
-    range: `'${sheetName}'!B${row}:G${row}`,
+    range: `'${sheetName}'!B${row}:F${row}`,
     valueInputOption: "USER_ENTERED",
     requestBody: {
       values: [
@@ -295,9 +306,18 @@ export async function updateVoter(
           phoneValue,
           voter.partyName,
           voter.assemblyName,
-          statusText,
         ],
       ],
+    },
+  });
+
+  // Update H (status) separately to preserve G (duplicate marking)
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: SPREADSHEET_ID,
+    range: `'${sheetName}'!H${row}`,
+    valueInputOption: "USER_ENTERED",
+    requestBody: {
+      values: [[statusText]],
     },
   });
 }
@@ -316,10 +336,10 @@ function parseSheetStats(
 
   for (let i = 0; i < dataRows.length; i++) {
     const row = dataRows[i];
-    const colG = (row[6] || "").toString().trim().toLowerCase();
+    const colH = (row[7] || "").toString().trim().toLowerCase();
 
-    if (colG === "accepted") accepted++;
-    else if (colG === "rejected") rejected++;
+    if (colH === "accepted") accepted++;
+    else if (colH === "rejected") rejected++;
   }
 
   return { name: sheetName, total, accepted, rejected, pending: total - accepted - rejected };
