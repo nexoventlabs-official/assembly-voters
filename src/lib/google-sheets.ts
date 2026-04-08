@@ -49,18 +49,6 @@ export async function getSheetNames(): Promise<string[]> {
   return sheetNames;
 }
 
-// Detect status from row background color (column A)
-function getStatusFromColor(bgColor?: { red?: number; green?: number; blue?: number }): string {
-  if (!bgColor) return "pending";
-  const r = bgColor.red ?? 1;
-  const g = bgColor.green ?? 1;
-  const b = bgColor.blue ?? 1;
-  // Green row = accepted (r < 0.9, g > 0.9)
-  if (g > 0.9 && r < 0.9 && b < 0.9) return "accepted";
-  // Red row = rejected (r > 0.9, g < 0.9)
-  if (r > 0.9 && g < 0.9 && b < 0.9) return "rejected";
-  return "pending";
-}
 
 export async function getVotersFromSheet(
   sheetName: string
@@ -74,14 +62,6 @@ export async function getVotersFromSheet(
   const rows = valuesRes.data.values || [];
   if (rows.length <= 2) return [];
 
-  // Fetch formatting to read row colors
-  const formatRes = await sheets.spreadsheets.get({
-    spreadsheetId: SPREADSHEET_ID,
-    ranges: [`'${sheetName}'`],
-    fields: "sheets.data.rowData.values.userEnteredFormat.backgroundColor",
-  });
-
-  const rowData = formatRes.data.sheets?.[0]?.data?.[0]?.rowData || [];
 
   // Sheet structure: Row 1 = header, Row 2 = sub-header, data starts from row 3 (index 2)
   // Columns: A=S.No, B=Name, C=Email, D=Phone.No ("main / optional"), E=Party Name, F=Assembly Name
@@ -89,10 +69,8 @@ export async function getVotersFromSheet(
     .slice(2)
     .filter((row) => row[1] && row[1].toString().trim() !== "")
     .map((row, index) => {
-      const actualRowIndex = index + 2; // 0-indexed row in sheet (after skipping 2 headers)
       const phoneRaw = (row[3] || "").toString().trim();
       const colG = (row[6] || "").toString().trim();
-      const colH = (row[7] || "").toString().trim();
 
       let mobile = phoneRaw;
       let optionalMobile = "";
@@ -110,18 +88,10 @@ export async function getVotersFromSheet(
       // Check if candidate is marked as duplicate (column G text)
       const isDuplicate = colG.toLowerCase() === "duplicate";
 
-      // Read status from row background color first, fall back to column G/H text
-      const cellFormat = rowData[actualRowIndex]?.values?.[0]?.userEnteredFormat;
-      const bgColor = cellFormat?.backgroundColor;
-      let status = getStatusFromColor(bgColor as { red?: number; green?: number; blue?: number });
-
-      // Fallback: if color says pending, check text columns for legacy data (skip "Duplicate" text)
-      if (status === "pending" && !isDuplicate) {
-        if (phoneRaw.includes("/")) {
-          status = colG || "pending";
-        } else if (colG && /^\d+$/.test(colG)) {
-          status = colH || "pending";
-        } else if (colG) {
+      // Read status from column G text
+      let status = "pending";
+      if (!isDuplicate) {
+        if (colG && !/^\d+$/.test(colG)) {
           status = colG;
         }
       }
@@ -230,28 +200,18 @@ export async function updateVoterStatus(
   row: number,
   status: string
 ): Promise<void> {
-  if (status.toLowerCase() === "duplicate") {
-    // Duplicate: only write text in column G, no row color change
-    await sheets.spreadsheets.values.update({
-      spreadsheetId: SPREADSHEET_ID,
-      range: `'${sheetName}'!G${row}`,
-      valueInputOption: "USER_ENTERED",
-      requestBody: {
-        values: [["Duplicate"]],
-      },
-    });
-  } else {
-    // Accepted/rejected/pending: clear column G, apply row color
-    await sheets.spreadsheets.values.update({
-      spreadsheetId: SPREADSHEET_ID,
-      range: `'${sheetName}'!G${row}`,
-      valueInputOption: "USER_ENTERED",
-      requestBody: {
-        values: [[""]],
-      },
-    });
-    await applyRowColor(sheetName, row, status);
-  }
+  // Write status text in column G (no colors)
+  const statusText = status.toLowerCase() === "duplicate" ? "Duplicate" :
+    status.toLowerCase() === "accepted" ? "accepted" : "";
+
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: SPREADSHEET_ID,
+    range: `'${sheetName}'!G${row}`,
+    valueInputOption: "USER_ENTERED",
+    requestBody: {
+      values: [[statusText]],
+    },
+  });
 }
 
 async function getSheetId(sheetName: string): Promise<number> {
@@ -264,49 +224,50 @@ async function getSheetId(sheetName: string): Promise<number> {
   return sheet?.properties?.sheetId ?? 0;
 }
 
-async function applyRowColor(
+export async function deleteVoterRow(
   sheetName: string,
-  row: number,
-  status: string
+  row: number
 ): Promise<void> {
   const sheetId = await getSheetId(sheetName);
-  const s = status.toLowerCase();
 
-  // Green for accepted, red for rejected, white (clear) for pending
-  let bgColor: { red: number; green: number; blue: number };
-  if (s === "accepted") {
-    bgColor = { red: 0.85, green: 0.95, blue: 0.85 }; // light green
-  } else if (s === "rejected") {
-    bgColor = { red: 0.95, green: 0.85, blue: 0.85 }; // light red
-  } else {
-    bgColor = { red: 1, green: 1, blue: 1 }; // white for pending
-  }
-
+  // Delete the row
   await sheets.spreadsheets.batchUpdate({
     spreadsheetId: SPREADSHEET_ID,
     requestBody: {
       requests: [
         {
-          // Color columns A-F
-          repeatCell: {
+          deleteDimension: {
             range: {
               sheetId,
-              startRowIndex: row - 1,
-              endRowIndex: row,
-              startColumnIndex: 0,
-              endColumnIndex: 6, // Columns A through F
+              dimension: "ROWS",
+              startIndex: row - 1, // 0-indexed
+              endIndex: row,
             },
-            cell: {
-              userEnteredFormat: {
-                backgroundColor: bgColor,
-              },
-            },
-            fields: "userEnteredFormat.backgroundColor",
           },
         },
       ],
     },
   });
+
+  // Re-number S.No column (A) for all data rows (starting from row 3)
+  const valuesRes = await sheets.spreadsheets.values.get({
+    spreadsheetId: SPREADSHEET_ID,
+    range: `'${sheetName}'!A:A`,
+  });
+  const allRows = valuesRes.data.values || [];
+  // Row 1 = header, Row 2 = sub-header, data starts at row 3 (index 2)
+  const dataCount = allRows.length - 2;
+  if (dataCount > 0) {
+    const serialNumbers = Array.from({ length: dataCount }, (_, i) => [i + 1]);
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: SPREADSHEET_ID,
+      range: `'${sheetName}'!A3:A${2 + dataCount}`,
+      valueInputOption: "USER_ENTERED",
+      requestBody: {
+        values: serialNumbers,
+      },
+    });
+  }
 }
 
 export async function updateVoter(
@@ -319,7 +280,9 @@ export async function updateVoter(
     ? `${voter.mobile} / ${voter.optionalMobile}`
     : voter.mobile;
 
-  // Columns: B=Name, C=Email, D=Phone.No, E=Party Name, F=Assembly Name, G=empty (status is indicated by color)
+  // Columns: B=Name, C=Email, D=Phone.No, E=Party Name, F=Assembly Name, G=Status
+  const statusText = voter.status?.toLowerCase() === "accepted" ? "accepted" : "";
+
   await sheets.spreadsheets.values.update({
     spreadsheetId: SPREADSHEET_ID,
     range: `'${sheetName}'!B${row}:G${row}`,
@@ -332,21 +295,17 @@ export async function updateVoter(
           phoneValue,
           voter.partyName,
           voter.assemblyName,
-          "", // No status text — color indicates status
+          statusText,
         ],
       ],
     },
   });
-
-  // Apply row background color based on status
-  await applyRowColor(sheetName, row, voter.status || "pending");
 }
 
-// Helper to parse rows from a single sheet's raw values + formatting into stats
+// Helper to parse rows from a single sheet's raw values into stats
 function parseSheetStats(
   sheetName: string,
-  rows: string[][],
-  rowData?: { values?: { userEnteredFormat?: { backgroundColor?: { red?: number; green?: number; blue?: number } } }[] }[]
+  rows: string[][]
 ) {
   // Skip 2 header rows, filter empty rows
   const dataRows = rows.slice(2).filter((row) => row[1] && row[1].toString().trim() !== "");
@@ -357,30 +316,10 @@ function parseSheetStats(
 
   for (let i = 0; i < dataRows.length; i++) {
     const row = dataRows[i];
-    const actualRowIndex = i + 2; // 0-indexed (skip 2 header rows)
+    const colG = (row[6] || "").toString().trim().toLowerCase();
 
-    // Try reading status from row color first
-    const bgColor = rowData?.[actualRowIndex]?.values?.[0]?.userEnteredFormat?.backgroundColor;
-    let status = getStatusFromColor(bgColor);
-
-    // Fallback to text columns for legacy data
-    if (status === "pending") {
-      const phoneRaw = (row[3] || "").toString().trim();
-      const colG = (row[6] || "").toString().trim();
-      const colH = (row[7] || "").toString().trim();
-
-      if (phoneRaw.includes("/")) {
-        status = colG || "pending";
-      } else if (colG && /^\d+$/.test(colG)) {
-        status = colH || "pending";
-      } else if (colG) {
-        status = colG;
-      }
-    }
-
-    const s = status.toLowerCase();
-    if (s === "accepted") accepted++;
-    else if (s === "rejected") rejected++;
+    if (colG === "accepted") accepted++;
+    else if (colG === "rejected") rejected++;
   }
 
   return { name: sheetName, total, accepted, rejected, pending: total - accepted - rejected };
@@ -390,20 +329,6 @@ export async function getDashboardStats() {
   const sheetNames = await getCachedSheetNames();
 
   const assemblyStats: { name: string; total: number; accepted: number; rejected: number; pending: number }[] = [];
-
-  // Fetch all sheet formatting in one call
-  const formatRes = await sheets.spreadsheets.get({
-    spreadsheetId: SPREADSHEET_ID,
-    fields: "sheets.properties.title,sheets.data.rowData.values.userEnteredFormat.backgroundColor",
-  });
-  const allSheets = formatRes.data.sheets || [];
-
-  // Build a map of sheet name -> rowData
-  const formatMap: Record<string, typeof allSheets[0]["data"]> = {};
-  for (const s of allSheets) {
-    const title = s.properties?.title || "";
-    if (title) formatMap[title] = s.data;
-  }
 
   // Fetch values in batches
   const BATCH_SIZE = 50;
@@ -420,8 +345,7 @@ export async function getDashboardStats() {
       const valueRanges = res.data.valueRanges || [];
       for (let j = 0; j < batch.length; j++) {
         const rows = valueRanges[j]?.values || [];
-        const rowData = formatMap[batch[j]]?.[0]?.rowData || [];
-        assemblyStats.push(parseSheetStats(batch[j], rows, rowData as Parameters<typeof parseSheetStats>[2]));
+        assemblyStats.push(parseSheetStats(batch[j], rows));
       }
     } catch (error: unknown) {
       const err = error as { code?: number };
@@ -435,8 +359,7 @@ export async function getDashboardStats() {
           const valueRanges = res.data.valueRanges || [];
           for (let j = 0; j < batch.length; j++) {
             const rows = valueRanges[j]?.values || [];
-            const rowData = formatMap[batch[j]]?.[0]?.rowData || [];
-            assemblyStats.push(parseSheetStats(batch[j], rows, rowData as Parameters<typeof parseSheetStats>[2]));
+            assemblyStats.push(parseSheetStats(batch[j], rows));
           }
         } catch {
           for (const name of batch) {

@@ -10,9 +10,8 @@ import {
   Phone,
   ChevronDown,
   X,
-  CheckCircle,
-  XCircle,
-  Clock,
+  Check,
+  Trash2,
   Loader2,
   UserPlus,
   Building2
@@ -43,7 +42,6 @@ function VotersContent() {
   const [loading, setLoading] = useState(true);
   const [sheetsLoaded, setSheetsLoaded] = useState(false);
   const [selectedAssembly, setSelectedAssembly] = useState(assemblyFromUrl || "");
-  const [selectedStatus, setSelectedStatus] = useState("total");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedVoter, setSelectedVoter] = useState<Voter | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
@@ -55,7 +53,6 @@ function VotersContent() {
     try {
       const params = new URLSearchParams();
       params.set("assembly", selectedAssembly);
-      if (selectedStatus !== "total") params.set("status", selectedStatus);
 
       const res = await fetch(`/api/voters?${params.toString()}`);
       const data = await res.json();
@@ -65,7 +62,7 @@ function VotersContent() {
     } finally {
       setLoading(false);
     }
-  }, [selectedAssembly, selectedStatus]);
+  }, [selectedAssembly]);
 
   const fetchSheets = useCallback(async () => {
     try {
@@ -105,7 +102,7 @@ function VotersContent() {
     );
   });
 
-  const handleStatusUpdate = async (voter: Voter, newStatus: string) => {
+  const handleAccept = async (voter: Voter) => {
     setUpdatingStatus(true);
     try {
       await fetch("/api/voters/update", {
@@ -114,42 +111,41 @@ function VotersContent() {
         body: JSON.stringify({
           sheetName: voter.sheetName,
           row: voter.row,
-          status: newStatus,
+          status: "accepted",
         }),
       });
-      // Refresh
       await fetchVoters();
       if (selectedVoter && selectedVoter.row === voter.row && selectedVoter.sheetName === voter.sheetName) {
-        setSelectedVoter({ ...voter, status: newStatus });
+        setSelectedVoter({ ...voter, status: "accepted" });
       }
     } catch {
-      console.error("Failed to update status");
+      console.error("Failed to accept candidate");
     } finally {
       setUpdatingStatus(false);
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    const s = status?.toLowerCase() || "pending";
-    switch (s) {
-      case "accepted":
-        return (
-          <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 rounded-full px-3 py-1 text-xs font-semibold">
-            <CheckCircle size={12} strokeWidth={2.5} /> Accepted
-          </span>
-        );
-      case "rejected":
-        return (
-          <span className="inline-flex items-center gap-1.5 bg-rose-50 text-rose-700 rounded-full px-3 py-1 text-xs font-semibold">
-            <XCircle size={12} strokeWidth={2.5} /> Rejected
-          </span>
-        );
-      default:
-        return (
-          <span className="inline-flex items-center gap-1.5 bg-amber-50 text-amber-700 rounded-full px-3 py-1 text-xs font-semibold">
-            <Clock size={12} strokeWidth={2.5} /> Pending
-          </span>
-        );
+  const handleReject = async (voter: Voter) => {
+    if (!confirm(`Are you sure you want to remove "${voter.name}"? This will delete the candidate from the Google Sheet.`)) return;
+    setUpdatingStatus(true);
+    try {
+      await fetch("/api/voters/delete", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sheetName: voter.sheetName,
+          row: voter.row,
+        }),
+      });
+      if (showDetailModal && selectedVoter?.row === voter.row && selectedVoter?.sheetName === voter.sheetName) {
+        setShowDetailModal(false);
+        setSelectedVoter(null);
+      }
+      await fetchVoters();
+    } catch {
+      console.error("Failed to remove candidate");
+    } finally {
+      setUpdatingStatus(false);
     }
   };
 
@@ -164,22 +160,6 @@ function VotersContent() {
   const openMail = (email: string) => {
     window.open(`mailto:${email}`, "_blank");
   };
-
-  const totalCount = voters.length;
-  const acceptedCount = voters.filter(
-    (v) => v.status?.toLowerCase() === "accepted"
-  ).length;
-  const rejectedCount = voters.filter(
-    (v) => v.status?.toLowerCase() === "rejected"
-  ).length;
-  const pendingCount = totalCount - acceptedCount - rejectedCount;
-
-  const statusTabs = [
-    { key: "total", label: "All", count: totalCount, color: "indigo" },
-    { key: "accepted", label: "Accepted", count: acceptedCount, color: "emerald" },
-    { key: "rejected", label: "Rejected", count: rejectedCount, color: "rose" },
-    { key: "pending", label: "Pending", count: pendingCount, color: "amber" },
-  ];
 
   return (
     <div className="p-6 md:p-8 xl:p-10 max-w-[1440px] mx-auto">
@@ -200,37 +180,6 @@ function VotersContent() {
           <UserPlus size={16} />
           Add Candidate
         </Link>
-      </div>
-
-      {/* Status Tabs */}
-      <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-1">
-        {statusTabs.map((tab) => {
-          const isActive = selectedStatus === tab.key;
-          const colorMap: Record<string, string> = {
-            indigo: isActive ? "bg-indigo-600 text-white" : "bg-white text-slate-600 hover:bg-slate-50",
-            emerald: isActive ? "bg-emerald-600 text-white" : "bg-white text-slate-600 hover:bg-slate-50",
-            rose: isActive ? "bg-rose-600 text-white" : "bg-white text-slate-600 hover:bg-slate-50",
-            amber: isActive ? "bg-amber-500 text-white" : "bg-white text-slate-600 hover:bg-slate-50",
-          };
-          return (
-            <button
-              key={tab.key}
-              onClick={() => setSelectedStatus(tab.key)}
-              className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border transition-all ${
-                isActive
-                  ? `${colorMap[tab.color]} border-transparent shadow-sm`
-                  : `${colorMap[tab.color]} border-slate-200`
-              }`}
-            >
-              {tab.label}
-              <span className={`text-xs font-bold px-1.5 py-0.5 rounded-md ${
-                isActive ? "bg-white/20" : "bg-slate-100 text-slate-500"
-              }`}>
-                {tab.count}
-              </span>
-            </button>
-          );
-        })}
       </div>
 
       {/* Filters */}
@@ -308,7 +257,7 @@ function VotersContent() {
                     Assembly
                   </th>
                   <th className="py-3 px-6 font-semibold text-slate-500 text-xs uppercase tracking-wider text-center">
-                    Status
+                    Verify
                   </th>
                   <th className="py-3 px-6 font-semibold text-slate-500 text-xs uppercase tracking-wider text-center">
                     Actions
@@ -358,8 +307,36 @@ function VotersContent() {
                     <td className="py-3.5 px-6 hidden lg:table-cell text-slate-500 text-xs">
                       {voter.assemblyName || voter.sheetName}
                     </td>
-                    <td className="py-3.5 px-6 text-center">
-                      {getStatusBadge(voter.status)}
+                    <td className="py-3.5 px-6">
+                      <div
+                        className="flex items-center justify-center gap-2"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {voter.status?.toLowerCase() === "accepted" ? (
+                          <span className="inline-flex items-center gap-1.5 text-emerald-600 text-xs font-semibold">
+                            <Check size={16} strokeWidth={3} /> Accepted
+                          </span>
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => handleAccept(voter)}
+                              disabled={updatingStatus}
+                              className="w-8 h-8 rounded-lg flex items-center justify-center bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors border border-emerald-200 disabled:opacity-50"
+                              title="Accept candidate"
+                            >
+                              <Check size={16} strokeWidth={2.5} />
+                            </button>
+                            <button
+                              onClick={() => handleReject(voter)}
+                              disabled={updatingStatus}
+                              className="w-8 h-8 rounded-lg flex items-center justify-center bg-rose-50 text-rose-600 hover:bg-rose-100 transition-colors border border-rose-200 disabled:opacity-50"
+                              title="Remove candidate"
+                            >
+                              <X size={16} strokeWidth={2.5} />
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </td>
                     <td className="py-3.5 px-6">
                       <div
@@ -511,52 +488,36 @@ function VotersContent() {
                 </div>
               </div>
 
-              {/* Status Update */}
+              {/* Verification */}
               <div className="bg-slate-50 rounded-xl p-5 border border-slate-100">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-sm font-semibold text-slate-800">Verification Status</h3>
-                  {getStatusBadge(selectedVoter.status)}
-                </div>
+                <h3 className="text-sm font-semibold text-slate-800 mb-4">Verification</h3>
                 
-                <div className="flex flex-col sm:flex-row items-center gap-2">
-                  <button
-                    disabled={updatingStatus}
-                    onClick={() => handleStatusUpdate(selectedVoter, "accepted")}
-                    className={`flex-1 w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium transition-all border ${
-                      selectedVoter.status?.toLowerCase() === "accepted"
-                        ? "bg-emerald-600 border-emerald-600 text-white shadow-sm"
-                        : "bg-white border-slate-200 text-slate-600 hover:bg-emerald-50 hover:border-emerald-200 hover:text-emerald-700"
-                    }`}
-                  >
-                    <CheckCircle size={15} /> Accept
-                  </button>
-                  <button
-                    disabled={updatingStatus}
-                    onClick={() => handleStatusUpdate(selectedVoter, "rejected")}
-                    className={`flex-1 w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium transition-all border ${
-                      selectedVoter.status?.toLowerCase() === "rejected"
-                        ? "bg-rose-600 border-rose-600 text-white shadow-sm"
-                        : "bg-white border-slate-200 text-slate-600 hover:bg-rose-50 hover:border-rose-200 hover:text-rose-700"
-                    }`}
-                  >
-                    <XCircle size={15} /> Reject
-                  </button>
-                  <button
-                    disabled={updatingStatus}
-                    onClick={() => handleStatusUpdate(selectedVoter, "pending")}
-                    className={`flex-1 w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium transition-all border ${
-                      selectedVoter.status?.toLowerCase() === "pending" || !selectedVoter.status
-                        ? "bg-amber-500 border-amber-500 text-white shadow-sm"
-                        : "bg-white border-slate-200 text-slate-600 hover:bg-amber-50 hover:border-amber-200 hover:text-amber-700"
-                    }`}
-                  >
-                    <Clock size={15} /> Pending
-                  </button>
-                </div>
+                {selectedVoter.status?.toLowerCase() === "accepted" ? (
+                  <div className="flex items-center gap-2 text-emerald-600 font-semibold">
+                    <Check size={18} strokeWidth={3} /> Candidate Accepted
+                  </div>
+                ) : (
+                  <div className="flex flex-col sm:flex-row items-center gap-2">
+                    <button
+                      disabled={updatingStatus}
+                      onClick={() => handleAccept(selectedVoter)}
+                      className="flex-1 w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium transition-all border bg-white border-slate-200 text-slate-600 hover:bg-emerald-50 hover:border-emerald-200 hover:text-emerald-700"
+                    >
+                      <Check size={15} strokeWidth={2.5} /> Accept
+                    </button>
+                    <button
+                      disabled={updatingStatus}
+                      onClick={() => handleReject(selectedVoter)}
+                      className="flex-1 w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium transition-all border bg-white border-slate-200 text-slate-600 hover:bg-rose-50 hover:border-rose-200 hover:text-rose-700"
+                    >
+                      <Trash2 size={15} /> Remove
+                    </button>
+                  </div>
+                )}
                 
                 {updatingStatus && (
                   <div className="flex items-center justify-center gap-2 mt-3 text-sm font-medium text-indigo-600">
-                    <Loader2 size={14} className="animate-spin" /> Updating...
+                    <Loader2 size={14} className="animate-spin" /> Processing...
                   </div>
                 )}
               </div>

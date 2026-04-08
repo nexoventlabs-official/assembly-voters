@@ -11,6 +11,8 @@ import {
   ChevronDown,
   Users,
   Copy,
+  Check,
+  X,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -33,6 +35,8 @@ export default function AddCandidatePage() {
   const [existingCandidates, setExistingCandidates] = useState<Candidate[]>([]);
   const [candidatesLoading, setCandidatesLoading] = useState(false);
   const [markingDuplicate, setMarkingDuplicate] = useState<number | null>(null);
+  const [acceptingCandidate, setAcceptingCandidate] = useState<number | null>(null);
+  const [removingCandidate, setRemovingCandidate] = useState<number | null>(null);
 
   const [form, setForm] = useState({
     sheetName: "",
@@ -91,6 +95,46 @@ export default function AddCandidatePage() {
       console.error("Failed to mark as duplicate");
     } finally {
       setMarkingDuplicate(null);
+    }
+  };
+
+  const handleAcceptCandidate = async (candidate: Candidate) => {
+    setAcceptingCandidate(candidate.row);
+    try {
+      await fetch("/api/voters/update", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sheetName: form.sheetName,
+          row: candidate.row,
+          status: "accepted",
+        }),
+      });
+      fetchCandidates(form.sheetName);
+    } catch {
+      console.error("Failed to accept candidate");
+    } finally {
+      setAcceptingCandidate(null);
+    }
+  };
+
+  const handleRemoveCandidate = async (candidate: Candidate) => {
+    if (!confirm(`Are you sure you want to remove "${candidate.name}"? This will delete the candidate from the Google Sheet.`)) return;
+    setRemovingCandidate(candidate.row);
+    try {
+      await fetch("/api/voters/delete", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sheetName: form.sheetName,
+          row: candidate.row,
+        }),
+      });
+      fetchCandidates(form.sheetName);
+    } catch {
+      console.error("Failed to remove candidate");
+    } finally {
+      setRemovingCandidate(null);
     }
   };
 
@@ -405,7 +449,7 @@ export default function AddCandidatePage() {
                     <th className="py-2.5 px-5 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-400">Name</th>
                     <th className="py-2.5 px-5 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-400">Mobile</th>
                     <th className="py-2.5 px-5 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-400">Party</th>
-                    <th className="py-2.5 px-5 text-center text-[11px] font-semibold uppercase tracking-wider text-slate-400">Status</th>
+                    <th className="py-2.5 px-5 text-center text-[11px] font-semibold uppercase tracking-wider text-slate-400">Verify</th>
                     <th className="py-2.5 px-5 text-center text-[11px] font-semibold uppercase tracking-wider text-slate-400">Action</th>
                   </tr>
                 </thead>
@@ -426,14 +470,38 @@ export default function AddCandidatePage() {
                       <td className="py-2.5 px-5 text-slate-500 font-mono text-xs">{c.mobile || "N/A"}</td>
                       <td className="py-2.5 px-5 text-slate-500">{c.partyName || "—"}</td>
                       <td className="py-2.5 px-5 text-center">
-                        <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold ${
-                          c.status?.toLowerCase() === 'accepted' ? 'bg-emerald-50 text-emerald-700' :
-                          c.status?.toLowerCase() === 'rejected' ? 'bg-rose-50 text-rose-700' :
-                          'bg-amber-50 text-amber-700'
-                        }`}>
-                          {c.status?.toLowerCase() === 'accepted' ? 'Accepted' :
-                           c.status?.toLowerCase() === 'rejected' ? 'Rejected' : 'Pending'}
-                        </span>
+                        {c.status?.toLowerCase() === 'accepted' ? (
+                          <span className="inline-flex items-center gap-1 text-emerald-600 text-[10px] font-semibold">
+                            <Check size={13} strokeWidth={3} /> Accepted
+                          </span>
+                        ) : (
+                          <div className="inline-flex items-center gap-1.5">
+                            <button
+                              onClick={() => handleAcceptCandidate(c)}
+                              disabled={acceptingCandidate === c.row || removingCandidate === c.row}
+                              className="w-6 h-6 rounded flex items-center justify-center bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors border border-emerald-200 disabled:opacity-50"
+                              title="Accept candidate"
+                            >
+                              {acceptingCandidate === c.row ? (
+                                <Loader2 size={11} className="animate-spin" />
+                              ) : (
+                                <Check size={13} strokeWidth={2.5} />
+                              )}
+                            </button>
+                            <button
+                              onClick={() => handleRemoveCandidate(c)}
+                              disabled={acceptingCandidate === c.row || removingCandidate === c.row}
+                              className="w-6 h-6 rounded flex items-center justify-center bg-rose-50 text-rose-600 hover:bg-rose-100 transition-colors border border-rose-200 disabled:opacity-50"
+                              title="Remove candidate"
+                            >
+                              {removingCandidate === c.row ? (
+                                <Loader2 size={11} className="animate-spin" />
+                              ) : (
+                                <X size={13} strokeWidth={2.5} />
+                              )}
+                            </button>
+                          </div>
+                        )}
                       </td>
                       <td className="py-2.5 px-5 text-center">
                         {c.isDuplicate ? (
