@@ -154,6 +154,66 @@ export async function getAllVoters(): Promise<Voter[]> {
   return allVoters;
 }
 
+export async function getAllAcceptedVoters(): Promise<{ assembly: string; name: string; email: string; mobile: string; optionalMobile: string; partyName: string }[]> {
+  const sheetNames = await getCachedSheetNames();
+  const results: { assembly: string; name: string; email: string; mobile: string; optionalMobile: string; partyName: string }[] = [];
+
+  // Fetch all sheets in batches to avoid rate limits
+  const BATCH_SIZE = 50;
+  for (let i = 0; i < sheetNames.length; i += BATCH_SIZE) {
+    const batch = sheetNames.slice(i, i + BATCH_SIZE);
+    const ranges = batch.map((name) => `'${name}'!A:H`);
+
+    try {
+      const res = await sheets.spreadsheets.values.batchGet({
+        spreadsheetId: SPREADSHEET_ID,
+        ranges,
+      });
+
+      const valueRanges = res.data.valueRanges || [];
+      for (let j = 0; j < batch.length; j++) {
+        const assemblyName = batch[j];
+        const rows = valueRanges[j]?.values || [];
+        if (rows.length <= 2) continue;
+
+        const dataRows = rows.slice(2).filter((row) => row[1] && row[1].toString().trim() !== "");
+        for (const row of dataRows) {
+          const colH = (row[7] || "").toString().trim().toLowerCase();
+          if (colH === "accepted") {
+            const phoneRaw = (row[3] || "").toString().trim();
+            let mobile = phoneRaw;
+            let optionalMobile = "";
+            if (phoneRaw.includes("/")) {
+              const parts = phoneRaw.split("/").map((p: string) => p.trim());
+              mobile = parts[0];
+              optionalMobile = parts[1] || "";
+            }
+
+            results.push({
+              assembly: assemblyName,
+              name: (row[1] || "").toString().trim(),
+              email: (row[2] || "").toString().trim(),
+              mobile,
+              optionalMobile,
+              partyName: (row[4] || "").toString().trim(),
+            });
+          }
+        }
+      }
+    } catch (error: unknown) {
+      const err = error as { code?: number };
+      if (err.code === 429) {
+        await new Promise((resolve) => setTimeout(resolve, 3000));
+        i -= BATCH_SIZE; // retry this batch
+      } else {
+        console.error("Error fetching batch:", error);
+      }
+    }
+  }
+
+  return results;
+}
+
 export async function addVoter(
   sheetName: string,
   voter: Omit<Voter, "row" | "sheetName">

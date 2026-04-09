@@ -11,10 +11,10 @@ import {
   XCircle,
   Clock,
   X,
-  TrendingUp,
   BarChart3,
   ArrowRight,
-  ArrowUpRight
+  ArrowUpRight,
+  Download
 } from "lucide-react";
 
 interface AssemblyStat {
@@ -38,6 +38,7 @@ export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
     fetch("/api/dashboard")
@@ -139,13 +140,52 @@ export default function DashboardPage() {
             Real-time insights across all assembly voter data.
           </p>
         </div>
-        <Link
-          href="/voters"
-          className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-medium text-sm transition-colors shadow-sm"
-        >
-          View All Voters
-          <ArrowRight size={16} />
-        </Link>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={async () => {
+              setDownloading(true);
+              try {
+                const res = await fetch("/api/voters/export");
+                if (!res.ok) throw new Error("Export failed");
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                const today = new Date().toISOString().split("T")[0];
+                a.download = `Accepted_Candidates_${today}.xlsx`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+              } catch {
+                alert("Failed to download. Please try again.");
+              } finally {
+                setDownloading(false);
+              }
+            }}
+            disabled={downloading}
+            className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white px-5 py-2.5 rounded-xl font-medium text-sm transition-colors shadow-sm"
+          >
+            {downloading ? (
+              <>
+                <Loader2 size={16} className="animate-spin" />
+                Downloading...
+              </>
+            ) : (
+              <>
+                <Download size={16} />
+                Download Accepted
+              </>
+            )}
+          </button>
+          <Link
+            href="/voters"
+            className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-medium text-sm transition-colors shadow-sm"
+          >
+            View All Voters
+            <ArrowRight size={16} />
+          </Link>
+        </div>
       </div>
 
       {/* Stat Cards */}
