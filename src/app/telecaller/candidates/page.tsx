@@ -54,12 +54,12 @@ const ALLIANCES: { value: string; label: string; parties: string[] }[] = [
   {
     value: "spa",
     label: "Secular Progressive Alliance (SPA)",
-    parties: ["DMK", "Dravida Munnetra Kazhagam", "Congress", "INC", "Indian National Congress", "DMDK", "Desiya Murpokku Dravida Kazhagam", "VCK", "Viduthalai Chiruthaigal Katchi", "CPI", "Communist Party", "CPI(M)", "MDMK", "Marumalarchi Dravida Munnetra", "KMDK", "Kongunadu Makkal Desiya Katchi", "MMK", "SDPI"],
+    parties: ["Dravida Munnetra Kazhagam", "Indian National Congress", "Desiya Murpokku Dravida Kazhagam", "Viduthalai Chiruthaigal Katchi", "Communist Party of India (Marxist)", "Communist Party of India", "Marumalarchi Dravida Munnetra Kazhagam"],
   },
   {
     value: "nda",
     label: "National Democratic Alliance (NDA)",
-    parties: ["AIADMK", "All India Anna Dravida Munnetra", "BJP", "Bharatiya Janata", "PMK", "Pattali Makkal Katchi", "AMMK", "Amma Makkal Munnetra", "TMC", "Moopanar", "IJK", "Puratchi Bharatham"],
+    parties: ["All India Anna Dravida Munnetra Kazhagam", "Bharatiya Janata Party", "Pattali Makkal Katchi", "Amma Makkal Munnettra Kazagam"],
   },
   {
     value: "tvk",
