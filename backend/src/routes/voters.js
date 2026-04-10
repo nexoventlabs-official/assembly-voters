@@ -49,14 +49,14 @@ router.get("/all", async (req, res) => {
         const BATCH_SIZE = 500;
         for (let i = 0; i < voters.length; i += BATCH_SIZE) {
           const batch = voters.slice(i, i + BATCH_SIZE).map((v) => ({
-            sheetName: v.sheetName,
+            sheetName: (v.sheetName || "").trim(),
             row: v.row,
-            name: v.name,
-            email: v.email,
-            mobile: v.mobile,
-            optionalMobile: v.optionalMobile,
-            partyName: v.partyName,
-            assemblyName: v.assemblyName || v.sheetName,
+            name: (v.name || "").trim(),
+            email: (v.email || "").trim(),
+            mobile: (v.mobile || "").trim(),
+            optionalMobile: (v.optionalMobile || "").trim(),
+            partyName: (v.partyName || "").trim(),
+            assemblyName: (v.assemblyName || v.sheetName || "").trim(),
             status: v.status,
             isDuplicate: v.isDuplicate,
           }));
