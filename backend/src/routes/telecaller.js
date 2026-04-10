@@ -9,8 +9,8 @@ router.get("/candidates", async (req, res) => {
     const telecaller = req.user.username;
     const { assembly, party, callStatus, page = 1, limit = 50 } = req.query;
 
-    // Build voter filter — only accepted candidates
-    const voterFilter = { status: { $regex: /^accepted$/i } };
+    // Build voter filter — show all candidates
+    const voterFilter = {};
     if (assembly) voterFilter.assemblyName = assembly;
     if (party) voterFilter.partyName = party;
 
@@ -92,7 +92,7 @@ router.get("/stats", async (req, res) => {
     await connectDB();
     const telecaller = req.user.username;
 
-    const totalAccepted = await VoterModel.countDocuments({ status: { $regex: /^accepted$/i } });
+    const totalAccepted = await VoterModel.countDocuments({});
 
     // Get all call statuses by this telecaller
     const statusCounts = await CallStatusModel.aggregate([
@@ -185,7 +185,7 @@ router.get("/admin/overview", async (req, res) => {
     await connectDB();
 
     const telecallerNames = ["Telecaller1", "Telecaller2", "Telecaller3", "Telecaller4", "Telecaller5", "Telecaller6"];
-    const totalAccepted = await VoterModel.countDocuments({ status: { $regex: /^accepted$/i } });
+    const totalAccepted = await VoterModel.countDocuments({});
 
     const telecallerStats = [];
 
