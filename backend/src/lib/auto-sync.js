@@ -26,24 +26,43 @@ async function runSync() {
       return;
     }
 
-    // Replace all data atomically
-    await VoterModel.deleteMany({});
-
+    // Upsert to preserve voter _id (so CallStatus references stay valid)
     const BATCH_SIZE = 500;
+    const seenKeys = new Set();
     for (let i = 0; i < voters.length; i += BATCH_SIZE) {
-      const batch = voters.slice(i, i + BATCH_SIZE).map((v) => ({
-        sheetName: (v.sheetName || "").trim(),
-        row: v.row,
-        name: (v.name || "").trim(),
-        email: (v.email || "").trim(),
-        mobile: (v.mobile || "").trim(),
-        optionalMobile: (v.optionalMobile || "").trim(),
-        partyName: (v.partyName || "").trim(),
-        assemblyName: (v.assemblyName || v.sheetName || "").trim(),
-        status: v.status,
-        isDuplicate: v.isDuplicate,
-      }));
-      await VoterModel.insertMany(batch, { ordered: false });
+      const ops = voters.slice(i, i + BATCH_SIZE).map((v) => {
+        const sheetName = (v.sheetName || "").trim();
+        const row = v.row;
+        seenKeys.add(`${sheetName}::${row}`);
+        return {
+          updateOne: {
+            filter: { sheetName, row },
+            update: {
+              $set: {
+                name: (v.name || "").trim(),
+                email: (v.email || "").trim(),
+                mobile: (v.mobile || "").trim(),
+                optionalMobile: (v.optionalMobile || "").trim(),
+                partyName: (v.partyName || "").trim(),
+                assemblyName: (v.assemblyName || v.sheetName || "").trim(),
+                status: v.status,
+                isDuplicate: v.isDuplicate,
+              },
+            },
+            upsert: true,
+          },
+        };
+      });
+      await VoterModel.bulkWrite(ops, { ordered: false });
+    }
+
+    // Remove voters no longer in the sheet
+    const allVotersInDb = await VoterModel.find({}, { sheetName: 1, row: 1 }).lean();
+    const toDelete = allVotersInDb
+      .filter((v) => !seenKeys.has(`${v.sheetName}::${v.row}`))
+      .map((v) => v._id);
+    if (toDelete.length > 0) {
+      await VoterModel.deleteMany({ _id: { $in: toDelete } });
     }
 
     lastSyncTime = new Date();

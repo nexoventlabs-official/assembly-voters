@@ -36,7 +36,7 @@ const callStatusSchema = new mongoose.Schema(
     telecaller: { type: String, required: true, index: true },
     status: {
       type: String,
-      enum: ["interested", "not_interested", "no_response", "switch_off", "wrong_number", "callback"],
+      enum: ["interested", "not_interested", "no_response", "switch_off", "wrong_number", "callback", "first_call_completed", "second_call_completed", "third_call_completed"],
       required: true,
       index: true,
     },

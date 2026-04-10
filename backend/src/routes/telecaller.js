@@ -150,6 +150,9 @@ router.get("/stats", async (req, res) => {
       switch_off: 0,
       wrong_number: 0,
       callback: 0,
+      first_call_completed: 0,
+      second_call_completed: 0,
+      third_call_completed: 0,
     };
 
     for (const s of statusCounts) {
@@ -245,6 +248,9 @@ router.get("/admin/overview", async (req, res) => {
         switch_off: 0,
         wrong_number: 0,
         callback: 0,
+        first_call_completed: 0,
+        second_call_completed: 0,
+        third_call_completed: 0,
       };
 
       for (const s of statusCounts) {

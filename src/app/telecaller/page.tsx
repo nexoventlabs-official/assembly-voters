@@ -14,6 +14,7 @@ import {
   BarChart3,
   Activity,
   Phone,
+  CheckCircle,
 } from "lucide-react";
 
 interface CallStatusStats {
@@ -26,6 +27,9 @@ interface CallStatusStats {
   switch_off: number;
   wrong_number: number;
   callback: number;
+  first_call_completed: number;
+  second_call_completed: number;
+  third_call_completed: number;
   todayCalls: number;
 }
 
@@ -36,6 +40,9 @@ const statusLabels: Record<string, { label: string; color: string; bg: string; i
   switch_off: { label: "Switch Off", color: "text-slate-700", bg: "bg-slate-100 border-slate-200", icon: PhoneOff },
   wrong_number: { label: "Wrong Number", color: "text-red-700", bg: "bg-red-50 border-red-100", icon: AlertTriangle },
   callback: { label: "Callback", color: "text-blue-700", bg: "bg-blue-50 border-blue-100", icon: PhoneForwarded },
+  first_call_completed: { label: "1st Call Done", color: "text-cyan-700", bg: "bg-cyan-50 border-cyan-100", icon: CheckCircle },
+  second_call_completed: { label: "2nd Call Done", color: "text-indigo-700", bg: "bg-indigo-50 border-indigo-100", icon: CheckCircle },
+  third_call_completed: { label: "3rd Call Done", color: "text-purple-700", bg: "bg-purple-50 border-purple-100", icon: CheckCircle },
 };
 
 export default function TelecallerDashboard() {

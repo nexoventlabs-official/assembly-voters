@@ -48,19 +48,25 @@ router.get("/all", async (req, res) => {
       if (voters.length > 0) {
         const BATCH_SIZE = 500;
         for (let i = 0; i < voters.length; i += BATCH_SIZE) {
-          const batch = voters.slice(i, i + BATCH_SIZE).map((v) => ({
-            sheetName: (v.sheetName || "").trim(),
-            row: v.row,
-            name: (v.name || "").trim(),
-            email: (v.email || "").trim(),
-            mobile: (v.mobile || "").trim(),
-            optionalMobile: (v.optionalMobile || "").trim(),
-            partyName: (v.partyName || "").trim(),
-            assemblyName: (v.assemblyName || v.sheetName || "").trim(),
-            status: v.status,
-            isDuplicate: v.isDuplicate,
+          const ops = voters.slice(i, i + BATCH_SIZE).map((v) => ({
+            updateOne: {
+              filter: { sheetName: (v.sheetName || "").trim(), row: v.row },
+              update: {
+                $set: {
+                  name: (v.name || "").trim(),
+                  email: (v.email || "").trim(),
+                  mobile: (v.mobile || "").trim(),
+                  optionalMobile: (v.optionalMobile || "").trim(),
+                  partyName: (v.partyName || "").trim(),
+                  assemblyName: (v.assemblyName || v.sheetName || "").trim(),
+                  status: v.status,
+                  isDuplicate: v.isDuplicate,
+                },
+              },
+              upsert: true,
+            },
           }));
-          await VoterModel.insertMany(batch, { ordered: false });
+          await VoterModel.bulkWrite(ops, { ordered: false });
         }
       }
     }
