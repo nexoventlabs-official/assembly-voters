@@ -28,7 +28,7 @@ app.use(express.json());
 
 // Health check
 app.get("/", (req, res) => {
-  res.json({ status: "ok", message: "Assembly Backend API" });
+  res.json({ status: "ok", message: "Assembly Backend API", version: "2.1.0" });
 });
 
 // Sync status (protected)
