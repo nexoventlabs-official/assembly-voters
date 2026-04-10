@@ -121,7 +121,7 @@ export default function TelecallerCandidatesPage() {
     apiFetch(`/api/telecaller/candidates?${params.toString()}`)
       .then((res) => res.json())
       .then((data) => {
-        console.log("[Telecaller] Fetched candidates:", data.candidates?.length, "total:", data.total);
+        console.log("[Telecaller] Fetched candidates:", data.candidates?.length, "total:", data.total, "totalAll:", data.totalAll, "filterUsed:", data.filterUsed);
         setCandidates(data.candidates || []);
         // Extract unique parties
         const uniqueParties = [...new Set((data.candidates || []).map((c: Candidate) => c.partyName).filter(Boolean))].sort();
