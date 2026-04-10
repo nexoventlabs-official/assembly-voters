@@ -100,6 +100,7 @@ export default function TelecallerCandidatesPage() {
   const [assemblies, setAssemblies] = useState<string[]>([]);
   const [parties, setParties] = useState<string[]>([]);
   const [selectedAssembly, setSelectedAssembly] = useState("");
+  const [showAllianceFilter, setShowAllianceFilter] = useState(false);
   const [selectedAlliance, setSelectedAlliance] = useState("");
   const [selectedParty, setSelectedParty] = useState("");
   const [selectedCallStatus, setSelectedCallStatus] = useState("");
@@ -126,7 +127,7 @@ export default function TelecallerCandidatesPage() {
     const params = new URLSearchParams();
     if (selectedAssembly) params.set("assembly", selectedAssembly);
     if (selectedCallStatus) params.set("callStatus", selectedCallStatus);
-    params.set("limit", "5000");
+    params.set("limit", "all");
 
     apiFetch(`/api/telecaller/candidates?${params.toString()}`)
       .then((res) => res.json())
@@ -314,21 +315,40 @@ export default function TelecallerCandidatesPage() {
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row flex-wrap gap-3 mb-6">
-        {/* Alliance filter */}
-        <div className="relative">
-          <Users size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-          <select
-            value={selectedAlliance}
-            onChange={(e) => { setSelectedAlliance(e.target.value); setSelectedParty(""); }}
-            className="appearance-none input-field pl-10 pr-9 py-2.5 text-sm font-medium min-w-[280px]"
-          >
-            <option value="">Select Alliance</option>
-            {ALLIANCES.map((a) => (
-              <option key={a.value} value={a.value}>{a.label}</option>
-            ))}
-          </select>
-          <ChevronDown size={15} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-        </div>
+        {/* Alliance filter toggle button */}
+        <button
+          onClick={() => {
+            const next = !showAllianceFilter;
+            setShowAllianceFilter(next);
+            if (!next) { setSelectedAlliance(""); setSelectedParty(""); }
+          }}
+          className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors border ${
+            showAllianceFilter
+              ? "bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100"
+              : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+          }`}
+        >
+          <Users size={15} />
+          {showAllianceFilter ? "Hide Alliance" : "Filter by Alliance"}
+        </button>
+
+        {/* Alliance filter dropdown (only shown when toggled on) */}
+        {showAllianceFilter && (
+          <div className="relative">
+            <Users size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+            <select
+              value={selectedAlliance}
+              onChange={(e) => { setSelectedAlliance(e.target.value); setSelectedParty(""); }}
+              className="appearance-none input-field pl-10 pr-9 py-2.5 text-sm font-medium min-w-[280px]"
+            >
+              <option value="">Select Alliance</option>
+              {ALLIANCES.map((a) => (
+                <option key={a.value} value={a.value}>{a.label}</option>
+              ))}
+            </select>
+            <ChevronDown size={15} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+          </div>
+        )}
 
         {/* Assembly filter */}
         <div className="relative">

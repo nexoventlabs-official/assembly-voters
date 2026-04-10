@@ -31,16 +31,24 @@ router.get("/candidates", async (req, res) => {
     if (assembly) voterFilter.assemblyName = assembly;
     if (party) voterFilter.partyName = party;
 
-    const skip = (parseInt(page) - 1) * parseInt(limit);
     const totalAll = await VoterModel.countDocuments({});
     const total = await VoterModel.countDocuments(voterFilter);
-    let voters = await VoterModel.find(voterFilter)
-      .sort({ assemblyName: 1, name: 1 })
-      .skip(skip)
-      .limit(parseInt(limit))
-      .lean();
 
-    console.log(`[telecaller/candidates] filter=${JSON.stringify(voterFilter)} totalAll=${totalAll} totalFiltered=${total} fetched=${voters.length} limit=${limit} skip=${skip}`);
+    let voters;
+    if (limit === "all") {
+      voters = await VoterModel.find(voterFilter)
+        .sort({ assemblyName: 1, name: 1 })
+        .lean();
+    } else {
+      const skip = (parseInt(page) - 1) * parseInt(limit);
+      voters = await VoterModel.find(voterFilter)
+        .sort({ assemblyName: 1, name: 1 })
+        .skip(skip)
+        .limit(parseInt(limit))
+        .lean();
+    }
+
+    console.log(`[telecaller/candidates] filter=${JSON.stringify(voterFilter)} totalAll=${totalAll} totalFiltered=${total} fetched=${voters.length} limit=${limit}`);
 
     // Get call statuses for these voters by this telecaller
     const voterIds = voters.map((v) => v._id);
