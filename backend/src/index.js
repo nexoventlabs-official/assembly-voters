@@ -7,6 +7,7 @@ const { connectDB } = require("./lib/mongodb");
 const authRoutes = require("./routes/auth");
 const voterRoutes = require("./routes/voters");
 const dashboardRoutes = require("./routes/dashboard");
+const telecallerRoutes = require("./routes/telecaller");
 const authMiddleware = require("./middleware/auth");
 const { startAutoSync, getSyncStatus } = require("./lib/auto-sync");
 
@@ -41,6 +42,7 @@ app.use("/api/auth", authRoutes);
 // Protected routes
 app.use("/api/dashboard", authMiddleware, dashboardRoutes);
 app.use("/api/voters", authMiddleware, voterRoutes);
+app.use("/api/telecaller", authMiddleware, telecallerRoutes);
 app.use("/api/sheets", authMiddleware, (req, res, next) => {
   // Forward to dashboard sheets route
   req.url = "/sheets";

@@ -29,4 +29,25 @@ voterSchema.index({ sheetName: 1, row: 1 }, { unique: true });
 
 const VoterModel = mongoose.models.Voter || mongoose.model("Voter", voterSchema);
 
-module.exports = { connectDB, VoterModel };
+// Call status tracking for telecallers
+const callStatusSchema = new mongoose.Schema(
+  {
+    voterId: { type: mongoose.Schema.Types.ObjectId, ref: "Voter", required: true, index: true },
+    telecaller: { type: String, required: true, index: true },
+    status: {
+      type: String,
+      enum: ["interested", "not_interested", "no_response", "switch_off", "wrong_number", "callback"],
+      required: true,
+      index: true,
+    },
+    notes: { type: String, default: "" },
+    calledAt: { type: Date, default: Date.now },
+  },
+  { timestamps: true }
+);
+
+callStatusSchema.index({ voterId: 1, telecaller: 1 });
+
+const CallStatusModel = mongoose.models.CallStatus || mongoose.model("CallStatus", callStatusSchema);
+
+module.exports = { connectDB, VoterModel, CallStatusModel };
