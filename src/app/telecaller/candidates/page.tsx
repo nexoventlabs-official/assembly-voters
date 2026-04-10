@@ -18,6 +18,7 @@ import {
   X,
   Clock,
   MessageSquare,
+  Users,
 } from "lucide-react";
 
 interface Candidate {
@@ -46,6 +47,30 @@ const callStatusOptions = [
   { value: "callback", label: "Callback", icon: PhoneForwarded, color: "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100" },
 ];
 
+// Alliance to party mapping
+const ALLIANCES: { value: string; label: string; parties: string[] }[] = [
+  {
+    value: "spa",
+    label: "Secular Progressive Alliance (SPA)",
+    parties: ["DMK", "Congress", "INC", "DMDK", "VCK", "CPI", "CPI(M)", "MDMK", "KMDK", "MMK", "SDPI"],
+  },
+  {
+    value: "nda",
+    label: "National Democratic Alliance (NDA)",
+    parties: ["AIADMK", "BJP", "PMK", "AMMK", "TMC", "IJK", "Puratchi Bharatham"],
+  },
+  {
+    value: "tvk",
+    label: "Tamil Vettri Kazhagam (TVK)",
+    parties: ["TVK", "Tamil Vettri Kazhagam"],
+  },
+  {
+    value: "ntk",
+    label: "Naam Tamilar Katchi (NTK)",
+    parties: ["NTK", "Naam Tamilar Katchi"],
+  },
+];
+
 const statusFilterOptions = [
   { value: "", label: "All" },
   { value: "not_called", label: "Not Called" },
@@ -63,6 +88,7 @@ export default function TelecallerCandidatesPage() {
   const [assemblies, setAssemblies] = useState<string[]>([]);
   const [parties, setParties] = useState<string[]>([]);
   const [selectedAssembly, setSelectedAssembly] = useState("");
+  const [selectedAlliance, setSelectedAlliance] = useState("");
   const [selectedParty, setSelectedParty] = useState("");
   const [selectedCallStatus, setSelectedCallStatus] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -101,18 +127,46 @@ export default function TelecallerCandidatesPage() {
       .catch(() => setLoading(false));
   }, [selectedAssembly, selectedParty, selectedCallStatus]);
 
-  // Filter by search
+  // Get parties for selected alliance
+  const allianceParties = useMemo(() => {
+    if (!selectedAlliance) return null;
+    const alliance = ALLIANCES.find((a) => a.value === selectedAlliance);
+    return alliance ? alliance.parties.map((p) => p.toLowerCase()) : null;
+  }, [selectedAlliance]);
+
+  // Filter by alliance + search
   const filtered = useMemo(() => {
-    if (!searchQuery) return candidates;
-    const q = searchQuery.toLowerCase();
-    return candidates.filter(
-      (c) =>
-        c.name.toLowerCase().includes(q) ||
-        c.mobile.includes(q) ||
-        c.partyName.toLowerCase().includes(q) ||
-        c.assemblyName.toLowerCase().includes(q)
+    let result = candidates;
+
+    // Filter by alliance
+    if (allianceParties) {
+      result = result.filter((c) =>
+        allianceParties.some((ap) => c.partyName.toLowerCase().includes(ap))
+      );
+    }
+
+    // Filter by search
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(
+        (c) =>
+          c.name.toLowerCase().includes(q) ||
+          c.mobile.includes(q) ||
+          c.partyName.toLowerCase().includes(q) ||
+          c.assemblyName.toLowerCase().includes(q)
+      );
+    }
+
+    return result;
+  }, [candidates, searchQuery, allianceParties]);
+
+  // Parties filtered by alliance for dropdown
+  const filteredParties = useMemo(() => {
+    if (!allianceParties) return parties;
+    return parties.filter((p) =>
+      allianceParties.some((ap) => p.toLowerCase().includes(ap))
     );
-  }, [candidates, searchQuery]);
+  }, [parties, allianceParties]);
 
   const hasMobile = (val?: string) => !!val && val.trim() !== "" && val.trim().toUpperCase() !== "N/A";
   const hasEmail = (val?: string) => !!val && val.trim() !== "" && val.trim().toUpperCase() !== "N/A";
@@ -219,7 +273,23 @@ export default function TelecallerCandidatesPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3 mb-6">
+      <div className="flex flex-col sm:flex-row flex-wrap gap-3 mb-6">
+        {/* Alliance filter */}
+        <div className="relative">
+          <Users size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+          <select
+            value={selectedAlliance}
+            onChange={(e) => { setSelectedAlliance(e.target.value); setSelectedParty(""); }}
+            className="appearance-none input-field pl-10 pr-9 py-2.5 text-sm font-medium min-w-[280px]"
+          >
+            <option value="">All Alliances</option>
+            {ALLIANCES.map((a) => (
+              <option key={a.value} value={a.value}>{a.label}</option>
+            ))}
+          </select>
+          <ChevronDown size={15} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+        </div>
+
         {/* Assembly filter */}
         <div className="relative">
           <Filter size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -236,7 +306,7 @@ export default function TelecallerCandidatesPage() {
           <ChevronDown size={15} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
         </div>
 
-        {/* Party filter */}
+        {/* Party filter (filtered by alliance) */}
         <div className="relative">
           <Filter size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
           <select
@@ -244,8 +314,8 @@ export default function TelecallerCandidatesPage() {
             onChange={(e) => setSelectedParty(e.target.value)}
             className="appearance-none input-field pl-10 pr-9 py-2.5 text-sm font-medium min-w-[180px]"
           >
-            <option value="">All Parties</option>
-            {parties.map((p) => (
+            <option value="">{selectedAlliance ? "All Alliance Parties" : "All Parties"}</option>
+            {filteredParties.map((p) => (
               <option key={p} value={p}>{p}</option>
             ))}
           </select>
