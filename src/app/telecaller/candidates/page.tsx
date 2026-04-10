@@ -71,7 +71,17 @@ const ALLIANCES: { value: string; label: string; parties: string[] }[] = [
     label: "Naam Tamilar Katchi (NTK)",
     parties: ["NTK", "Naam Tamilar Katchi", "Naam Tamilar"],
   },
+  {
+    value: "others",
+    label: "Others / Independent",
+    parties: [],
+  },
 ];
+
+// All known alliance party keywords (for "others" filter)
+const ALL_ALLIANCE_PARTIES = ALLIANCES
+  .filter((a) => a.value !== "others")
+  .flatMap((a) => a.parties.map((p) => p.toLowerCase()));
 
 const statusFilterOptions = [
   { value: "", label: "All" },
@@ -134,6 +144,7 @@ export default function TelecallerCandidatesPage() {
   // Get parties for selected alliance
   const allianceParties = useMemo(() => {
     if (!selectedAlliance) return null;
+    if (selectedAlliance === "others") return "others";
     const alliance = ALLIANCES.find((a) => a.value === selectedAlliance);
     return alliance ? alliance.parties.map((p) => p.toLowerCase()) : null;
   }, [selectedAlliance]);
@@ -143,7 +154,12 @@ export default function TelecallerCandidatesPage() {
     let result = candidates;
 
     // Filter by alliance
-    if (allianceParties) {
+    if (allianceParties === "others") {
+      result = result.filter((c) => {
+        const pLower = c.partyName.toLowerCase();
+        return !ALL_ALLIANCE_PARTIES.some((ap) => pLower.includes(ap) || ap.includes(pLower));
+      });
+    } else if (allianceParties) {
       result = result.filter((c) => {
         const pLower = c.partyName.toLowerCase();
         return allianceParties.some((ap) => pLower.includes(ap) || ap.includes(pLower));
@@ -182,6 +198,11 @@ export default function TelecallerCandidatesPage() {
   // Parties filtered by alliance for dropdown
   const filteredParties = useMemo(() => {
     if (!allianceParties) return parties;
+    if (allianceParties === "others") {
+      return parties.filter((p) =>
+        !ALL_ALLIANCE_PARTIES.some((ap) => p.toLowerCase().includes(ap) || ap.includes(p.toLowerCase()))
+      );
+    }
     return parties.filter((p) =>
       allianceParties.some((ap) => p.toLowerCase().includes(ap))
     );
