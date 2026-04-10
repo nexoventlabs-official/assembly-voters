@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { LayoutDashboard, Users, Menu, X, Hexagon, BarChart3 } from "lucide-react";
+import { LayoutDashboard, Users, Menu, X, Hexagon, BarChart3, Flag } from "lucide-react";
 import { useState } from "react";
 import SidebarMap from "./SidebarMap";
 import assemblyData from "@/lib/assemblyToDistrict.json";
@@ -11,6 +11,7 @@ const navItems = [
   { href: "/", label: "Overview", icon: LayoutDashboard },
   { href: "/performance", label: "Performance", icon: BarChart3 },
   { href: "/voters", label: "Voter Database", icon: Users },
+  { href: "/candidates", label: "Party-wise", icon: Flag },
 ];
 
 const normalize = (str?: string) => (str || "").trim().toLowerCase().replace(/[^a-z0-9]/g, '');
