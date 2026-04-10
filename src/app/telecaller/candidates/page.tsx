@@ -121,6 +121,7 @@ export default function TelecallerCandidatesPage() {
     apiFetch(`/api/telecaller/candidates?${params.toString()}`)
       .then((res) => res.json())
       .then((data) => {
+        console.log("[Telecaller] Fetched candidates:", data.candidates?.length, "total:", data.total);
         setCandidates(data.candidates || []);
         // Extract unique parties
         const uniqueParties = [...new Set((data.candidates || []).map((c: Candidate) => c.partyName).filter(Boolean))].sort();
@@ -370,7 +371,7 @@ export default function TelecallerCandidatesPage() {
 
       {/* Count */}
       <div className="mb-4">
-        <span className="text-xs font-medium text-slate-400">{filtered.length} candidates</span>
+        <span className="text-xs font-medium text-slate-400">{filtered.length} candidates <span className="text-slate-300">({candidates.length} loaded)</span></span>
       </div>
 
       {/* Table */}
