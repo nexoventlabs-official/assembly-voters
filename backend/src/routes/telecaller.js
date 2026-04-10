@@ -2,6 +2,23 @@ const express = require("express");
 const { connectDB, VoterModel, CallStatusModel } = require("../lib/mongodb");
 const router = express.Router();
 
+// DEBUG: count endpoint
+router.get("/debug-count", async (req, res) => {
+  try {
+    await connectDB();
+    const total = await VoterModel.countDocuments({});
+    const bjpCount = await VoterModel.countDocuments({ partyName: "Bharatiya Janata Party" });
+    const bjpRegex = await VoterModel.countDocuments({ partyName: /bharatiya/i });
+    const statuses = await VoterModel.aggregate([
+      { $match: { partyName: /bharatiya/i } },
+      { $group: { _id: "$status", count: { $sum: 1 } } }
+    ]);
+    res.json({ total, bjpCount, bjpRegex, statuses });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // GET /api/telecaller/candidates — list candidates with their call status for this telecaller
 router.get("/candidates", async (req, res) => {
   try {
