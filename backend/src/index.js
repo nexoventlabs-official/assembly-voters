@@ -8,6 +8,7 @@ const authRoutes = require("./routes/auth");
 const voterRoutes = require("./routes/voters");
 const dashboardRoutes = require("./routes/dashboard");
 const authMiddleware = require("./middleware/auth");
+const { startAutoSync, getSyncStatus } = require("./lib/auto-sync");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -27,6 +28,11 @@ app.use(express.json());
 // Health check
 app.get("/", (req, res) => {
   res.json({ status: "ok", message: "Assembly Backend API" });
+});
+
+// Sync status (protected)
+app.get("/api/sync/status", authMiddleware, (req, res) => {
+  res.json(getSyncStatus());
 });
 
 // Public routes
@@ -54,6 +60,7 @@ connectDB()
   .then(() => {
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
+      startAutoSync();
     });
   })
   .catch((err) => {
