@@ -14,7 +14,9 @@ import {
   Trash2,
   Loader2,
   UserPlus,
-  Building2
+  Building2,
+  Pencil,
+  Save
 } from "lucide-react";
 import Link from "next/link";
 import WhatsAppIcon from "@/components/WhatsAppIcon";
@@ -46,6 +48,15 @@ function VotersContent() {
   const [selectedVoter, setSelectedVoter] = useState<Voter | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editForm, setEditForm] = useState({
+    name: "",
+    email: "",
+    mobile: "",
+    optionalMobile: "",
+    partyName: "",
+  });
+  const [saving, setSaving] = useState(false);
 
   const fetchVoters = useCallback(async () => {
     if (!selectedAssembly) return;
@@ -144,6 +155,76 @@ function VotersContent() {
       await fetchVoters();
     } catch {
       console.error("Failed to remove candidate");
+    } finally {
+      setUpdatingStatus(false);
+    }
+  };
+
+  const openEditModal = (voter: Voter) => {
+    setEditForm({
+      name: voter.name,
+      email: voter.email,
+      mobile: voter.mobile,
+      optionalMobile: voter.optionalMobile || "",
+      partyName: voter.partyName,
+    });
+    setShowEditModal(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!selectedVoter || !editForm.name) return;
+    setSaving(true);
+    try {
+      await fetch("/api/voters/update", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sheetName: selectedVoter.sheetName,
+          row: selectedVoter.row,
+          name: editForm.name,
+          email: editForm.email,
+          mobile: editForm.mobile,
+          optionalMobile: editForm.optionalMobile,
+          partyName: editForm.partyName,
+          assemblyName: selectedVoter.assemblyName || selectedVoter.sheetName,
+          status: selectedVoter.status,
+        }),
+      });
+      const updatedVoter = {
+        ...selectedVoter,
+        name: editForm.name,
+        email: editForm.email,
+        mobile: editForm.mobile,
+        optionalMobile: editForm.optionalMobile,
+        partyName: editForm.partyName,
+      };
+      setSelectedVoter(updatedVoter);
+      setShowEditModal(false);
+      await fetchVoters();
+    } catch {
+      console.error("Failed to save edit");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteAccepted = async (voter: Voter) => {
+    if (!confirm(`Are you sure you want to delete "${voter.name}"? This will remove the candidate from both Google Sheet and database.`)) return;
+    setUpdatingStatus(true);
+    try {
+      await fetch("/api/voters/delete", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sheetName: voter.sheetName,
+          row: voter.row,
+        }),
+      });
+      setShowDetailModal(false);
+      setSelectedVoter(null);
+      await fetchVoters();
+    } catch {
+      console.error("Failed to delete candidate");
     } finally {
       setUpdatingStatus(false);
     }
@@ -493,9 +574,26 @@ function VotersContent() {
                 <h3 className="text-sm font-semibold text-slate-800 mb-4">Verification</h3>
                 
                 {selectedVoter.status?.toLowerCase() === "accepted" ? (
-                  <div className="flex items-center gap-2 text-emerald-600 font-semibold">
-                    <Check size={18} strokeWidth={3} /> Candidate Accepted
-                  </div>
+                  <>
+                    <div className="flex items-center gap-2 text-emerald-600 font-semibold mb-4">
+                      <Check size={18} strokeWidth={3} /> Candidate Accepted
+                    </div>
+                    <div className="flex flex-col sm:flex-row items-center gap-2">
+                      <button
+                        onClick={() => openEditModal(selectedVoter)}
+                        className="flex-1 w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium transition-all border bg-white border-slate-200 text-slate-600 hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-700"
+                      >
+                        <Pencil size={15} /> Edit Details
+                      </button>
+                      <button
+                        disabled={updatingStatus}
+                        onClick={() => handleDeleteAccepted(selectedVoter)}
+                        className="flex-1 w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium transition-all border bg-white border-slate-200 text-slate-600 hover:bg-rose-50 hover:border-rose-200 hover:text-rose-700"
+                      >
+                        <Trash2 size={15} /> Delete
+                      </button>
+                    </div>
+                  </>
                 ) : (
                   <div className="flex flex-col sm:flex-row items-center gap-2">
                     <button
@@ -521,6 +619,103 @@ function VotersContent() {
                   </div>
                 )}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Edit Modal */}
+      {showEditModal && selectedVoter && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-6">
+          <div
+            className="absolute inset-0 bg-black/30 backdrop-blur-sm"
+            onClick={() => setShowEditModal(false)}
+          ></div>
+          <div
+            className="bg-white w-full max-w-lg rounded-2xl border border-slate-200 shadow-2xl relative z-10"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
+              <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                <Pencil size={18} className="text-indigo-600" /> Edit Candidate
+              </h2>
+              <button
+                onClick={() => setShowEditModal(false)}
+                className="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-200 transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">Full Name</label>
+                <input
+                  type="text"
+                  value={editForm.name}
+                  onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))}
+                  className="w-full input-field px-4 py-2.5 text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">Email</label>
+                <input
+                  type="email"
+                  value={editForm.email}
+                  onChange={(e) => setEditForm((f) => ({ ...f, email: e.target.value }))}
+                  className="w-full input-field px-4 py-2.5 text-sm"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Primary Mobile</label>
+                  <input
+                    type="tel"
+                    value={editForm.mobile}
+                    onChange={(e) => setEditForm((f) => ({ ...f, mobile: e.target.value }))}
+                    className="w-full input-field px-4 py-2.5 text-sm font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Secondary Mobile</label>
+                  <input
+                    type="tel"
+                    value={editForm.optionalMobile}
+                    onChange={(e) => setEditForm((f) => ({ ...f, optionalMobile: e.target.value }))}
+                    className="w-full input-field px-4 py-2.5 text-sm font-mono"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">Party / Affiliation</label>
+                <input
+                  type="text"
+                  value={editForm.partyName}
+                  onChange={(e) => setEditForm((f) => ({ ...f, partyName: e.target.value }))}
+                  className="w-full input-field px-4 py-2.5 text-sm"
+                />
+              </div>
+              <div className="bg-slate-50 rounded-lg p-3 text-xs text-slate-500">
+                <p><strong>Assembly:</strong> {selectedVoter.assemblyName || selectedVoter.sheetName}</p>
+                <p className="mt-1"><strong>Row:</strong> {selectedVoter.row} &middot; <strong>Sheet:</strong> {selectedVoter.sheetName}</p>
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t border-slate-100 flex items-center gap-3 justify-end">
+              <button
+                onClick={() => setShowEditModal(false)}
+                className="px-5 py-2.5 rounded-xl text-sm font-medium text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveEdit}
+                disabled={saving || !editForm.name}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white transition-colors shadow-sm"
+              >
+                {saving ? (
+                  <><Loader2 size={15} className="animate-spin" /> Saving...</>
+                ) : (
+                  <><Save size={15} /> Save Changes</>
+                )}
+              </button>
             </div>
           </div>
         </div>

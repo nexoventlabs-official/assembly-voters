@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { updateVoterStatus, updateVoter } from "@/lib/google-sheets";
+import { connectDB, VoterModel } from "@/lib/mongodb";
 
 export async function PUT(request: NextRequest) {
   try {
@@ -13,11 +14,22 @@ export async function PUT(request: NextRequest) {
       );
     }
 
+    await connectDB();
+
     // If only status is provided, update just the status
     if (status && !name) {
       await updateVoterStatus(sheetName, row, status);
+
+      // Sync to MongoDB
+      const mongoUpdate: Record<string, unknown> = {};
+      if (status.toLowerCase() === "duplicate") {
+        mongoUpdate.isDuplicate = true;
+      } else {
+        mongoUpdate.status = status;
+      }
+      await VoterModel.updateOne({ sheetName, row }, { $set: mongoUpdate });
     } else {
-      // Full update
+      // Full update - Google Sheets
       await updateVoter(sheetName, row, {
         name,
         email: email || "",
@@ -28,6 +40,23 @@ export async function PUT(request: NextRequest) {
         status: status || "pending",
         isDuplicate: false,
       });
+
+      // Sync full update to MongoDB
+      await VoterModel.updateOne(
+        { sheetName, row },
+        {
+          $set: {
+            name,
+            email: email || "",
+            mobile,
+            optionalMobile: optionalMobile || "",
+            partyName: partyName || "",
+            assemblyName: assemblyName || sheetName,
+            status: status || "pending",
+            isDuplicate: false,
+          },
+        }
+      );
     }
 
     return NextResponse.json({ success: true });
