@@ -13,6 +13,7 @@ import {
   Flag,
 } from "lucide-react";
 import * as XLSX from "xlsx";
+import { apiFetch } from "@/lib/api";
 
 interface Voter {
   row: number;
@@ -36,7 +37,7 @@ export default function CandidatesPage() {
   const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
-    fetch("/api/voters/all")
+    apiFetch("/api/voters/all")
       .then((res) => res.json())
       .then((data) => {
         setVoters(data.voters || []);

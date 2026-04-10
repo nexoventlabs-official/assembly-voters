@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { apiFetch } from "@/lib/api";
 import {
   Building2,
   Search,
@@ -33,7 +34,7 @@ export default function PerformancePage() {
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
-    fetch("/api/dashboard")
+    apiFetch("/api/dashboard")
       .then((res) => res.json())
       .then((d) => {
         setData(d);

@@ -15,6 +15,7 @@ import {
   X,
 } from "lucide-react";
 import Link from "next/link";
+import { apiFetch } from "@/lib/api";
 
 interface Candidate {
   row: number;
@@ -49,7 +50,7 @@ export default function AddCandidatePage() {
   });
 
   useEffect(() => {
-    fetch("/api/sheets")
+    apiFetch("/api/sheets")
       .then((res) => res.json())
       .then((data) => {
         setSheets(data.sheets || []);
@@ -68,7 +69,7 @@ export default function AddCandidatePage() {
     if (!assembly) { setExistingCandidates([]); return; }
     setCandidatesLoading(true);
     try {
-      const res = await fetch(`/api/voters?assembly=${encodeURIComponent(assembly)}`);
+      const res = await apiFetch(`/api/voters?assembly=${encodeURIComponent(assembly)}`);
       const data = await res.json();
       setExistingCandidates(data.voters || []);
     } catch {
@@ -81,9 +82,8 @@ export default function AddCandidatePage() {
   const markAsDuplicate = async (candidate: Candidate) => {
     setMarkingDuplicate(candidate.row);
     try {
-      await fetch("/api/voters/update", {
+      await apiFetch("/api/voters/update", {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           sheetName: form.sheetName,
           row: candidate.row,
@@ -101,9 +101,8 @@ export default function AddCandidatePage() {
   const handleAcceptCandidate = async (candidate: Candidate) => {
     setAcceptingCandidate(candidate.row);
     try {
-      await fetch("/api/voters/update", {
+      await apiFetch("/api/voters/update", {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           sheetName: form.sheetName,
           row: candidate.row,
@@ -122,9 +121,8 @@ export default function AddCandidatePage() {
     if (!confirm(`Are you sure you want to remove "${candidate.name}"? This will delete the candidate from the Google Sheet.`)) return;
     setRemovingCandidate(candidate.row);
     try {
-      await fetch("/api/voters/delete", {
+      await apiFetch("/api/voters/delete", {
         method: "DELETE",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           sheetName: form.sheetName,
           row: candidate.row,
@@ -160,9 +158,8 @@ export default function AddCandidatePage() {
 
     setLoading(true);
     try {
-      const res = await fetch("/api/voters", {
+      const res = await apiFetch("/api/voters", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       });
 

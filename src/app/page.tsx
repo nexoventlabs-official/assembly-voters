@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { apiFetch } from "@/lib/api";
 import {
   Building2,
   Search,
@@ -41,7 +42,7 @@ export default function DashboardPage() {
   const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
-    fetch("/api/dashboard")
+    apiFetch("/api/dashboard")
       .then((res) => res.json())
       .then((d) => {
         setData(d);
@@ -145,7 +146,7 @@ export default function DashboardPage() {
             onClick={async () => {
               setDownloading(true);
               try {
-                const res = await fetch("/api/voters/export");
+                const res = await apiFetch("/api/voters/export");
                 if (!res.ok) throw new Error("Export failed");
                 const blob = await res.blob();
                 const url = URL.createObjectURL(blob);

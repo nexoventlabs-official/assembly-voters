@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { LayoutDashboard, Users, Menu, X, Hexagon, BarChart3, Flag } from "lucide-react";
+import { LayoutDashboard, Users, Menu, X, Hexagon, BarChart3, Flag, LogOut } from "lucide-react";
 import { useState } from "react";
+import { useAuth } from "@/lib/auth";
 import SidebarMap from "./SidebarMap";
 import assemblyData from "@/lib/assemblyToDistrict.json";
 
@@ -20,6 +21,7 @@ export default function Sidebar() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { logout, username } = useAuth();
 
   // Read assembly from URL and map to district for sidebar map highlight
   const assemblyFromUrl = searchParams.get("assembly");
@@ -116,10 +118,28 @@ export default function Sidebar() {
         </nav>
 
         {/* Map */}
-        <div className="px-4 pb-4">
+        <div className="px-4 pb-2">
           <SidebarMap highlightedDistrict={highlightedDistrict} />
         </div>
 
+        {/* Logout */}
+        <div className="px-4 pb-4 border-t border-slate-100 pt-3">
+          <div className="flex items-center justify-between px-4 py-2">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-indigo-50 flex items-center justify-center text-xs font-bold text-indigo-600">
+                {(username || "A").charAt(0).toUpperCase()}
+              </div>
+              <span className="text-xs font-medium text-slate-600 truncate max-w-[100px]">{username || "Admin"}</span>
+            </div>
+            <button
+              onClick={logout}
+              className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+              title="Logout"
+            >
+              <LogOut size={16} />
+            </button>
+          </div>
+        </div>
       </aside>
     </>
   );

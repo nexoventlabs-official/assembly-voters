@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import WhatsAppIcon from "@/components/WhatsAppIcon";
+import { apiFetch } from "@/lib/api";
 
 interface Voter {
   row: number;
@@ -65,7 +66,7 @@ function VotersContent() {
       const params = new URLSearchParams();
       params.set("assembly", selectedAssembly);
 
-      const res = await fetch(`/api/voters?${params.toString()}`);
+      const res = await apiFetch(`/api/voters?${params.toString()}`);
       const data = await res.json();
       setVoters(data.voters || []);
     } catch {
@@ -77,7 +78,7 @@ function VotersContent() {
 
   const fetchSheets = useCallback(async () => {
     try {
-      const res = await fetch("/api/sheets");
+      const res = await apiFetch("/api/sheets");
       const data = await res.json();
       setSheets(data.sheets || []);
       setSheetsLoaded(true);
@@ -116,9 +117,8 @@ function VotersContent() {
   const handleAccept = async (voter: Voter) => {
     setUpdatingStatus(true);
     try {
-      await fetch("/api/voters/update", {
+      await apiFetch("/api/voters/update", {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           sheetName: voter.sheetName,
           row: voter.row,
@@ -140,9 +140,8 @@ function VotersContent() {
     if (!confirm(`Are you sure you want to remove "${voter.name}"? This will delete the candidate from the Google Sheet.`)) return;
     setUpdatingStatus(true);
     try {
-      await fetch("/api/voters/delete", {
+      await apiFetch("/api/voters/delete", {
         method: "DELETE",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           sheetName: voter.sheetName,
           row: voter.row,
@@ -175,9 +174,8 @@ function VotersContent() {
     if (!selectedVoter || !editForm.name) return;
     setSaving(true);
     try {
-      await fetch("/api/voters/update", {
+      await apiFetch("/api/voters/update", {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           sheetName: selectedVoter.sheetName,
           row: selectedVoter.row,
@@ -212,9 +210,8 @@ function VotersContent() {
     if (!confirm(`Are you sure you want to delete "${voter.name}"? This will remove the candidate from both Google Sheet and database.`)) return;
     setUpdatingStatus(true);
     try {
-      await fetch("/api/voters/delete", {
+      await apiFetch("/api/voters/delete", {
         method: "DELETE",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           sheetName: voter.sheetName,
           row: voter.row,
