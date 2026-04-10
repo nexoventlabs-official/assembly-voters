@@ -322,7 +322,7 @@ export default function TelecallerCandidatesPage() {
             onChange={(e) => { setSelectedAlliance(e.target.value); setSelectedParty(""); }}
             className="appearance-none input-field pl-10 pr-9 py-2.5 text-sm font-medium min-w-[280px]"
           >
-            <option value="">All Alliances</option>
+            <option value="">Select Alliance</option>
             {ALLIANCES.map((a) => (
               <option key={a.value} value={a.value}>{a.label}</option>
             ))}
