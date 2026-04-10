@@ -19,6 +19,8 @@ import {
   Clock,
   MessageSquare,
   Users,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 
 interface Candidate {
@@ -52,22 +54,22 @@ const ALLIANCES: { value: string; label: string; parties: string[] }[] = [
   {
     value: "spa",
     label: "Secular Progressive Alliance (SPA)",
-    parties: ["DMK", "Congress", "INC", "DMDK", "VCK", "CPI", "CPI(M)", "MDMK", "KMDK", "MMK", "SDPI"],
+    parties: ["DMK", "Dravida Munnetra Kazhagam", "Congress", "INC", "Indian National Congress", "DMDK", "Desiya Murpokku Dravida Kazhagam", "VCK", "Viduthalai Chiruthaigal Katchi", "CPI", "Communist Party", "CPI(M)", "MDMK", "Marumalarchi Dravida Munnetra", "KMDK", "Kongunadu Makkal Desiya Katchi", "MMK", "SDPI"],
   },
   {
     value: "nda",
     label: "National Democratic Alliance (NDA)",
-    parties: ["AIADMK", "BJP", "PMK", "AMMK", "TMC", "IJK", "Puratchi Bharatham"],
+    parties: ["AIADMK", "All India Anna Dravida Munnetra", "BJP", "Bharatiya Janata", "PMK", "Pattali Makkal Katchi", "AMMK", "Amma Makkal Munnetra", "TMC", "Moopanar", "IJK", "Puratchi Bharatham"],
   },
   {
     value: "tvk",
     label: "Tamil Vettri Kazhagam (TVK)",
-    parties: ["TVK", "Tamil Vettri Kazhagam"],
+    parties: ["TVK", "Tamil Vettri Kazhagam", "Tamilaga Vettri Kazhagam"],
   },
   {
     value: "ntk",
     label: "Naam Tamilar Katchi (NTK)",
-    parties: ["NTK", "Naam Tamilar Katchi"],
+    parties: ["NTK", "Naam Tamilar Katchi", "Naam Tamilar"],
   },
 ];
 
@@ -97,6 +99,8 @@ export default function TelecallerCandidatesPage() {
   const [statusNotes, setStatusNotes] = useState("");
   const [saving, setSaving] = useState(false);
   const [phonePicker, setPhonePicker] = useState<{ numbers: string[]; action: "whatsapp" | "call"; x: number; y: number } | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 50;
 
   // Fetch assemblies
   useEffect(() => {
@@ -106,14 +110,13 @@ export default function TelecallerCandidatesPage() {
       .catch(() => {});
   }, []);
 
-  // Fetch candidates
+  // Fetch candidates — fetch all, filter client-side
   useEffect(() => {
     setLoading(true);
     const params = new URLSearchParams();
     if (selectedAssembly) params.set("assembly", selectedAssembly);
-    if (selectedParty) params.set("party", selectedParty);
     if (selectedCallStatus) params.set("callStatus", selectedCallStatus);
-    params.set("limit", "500");
+    params.set("limit", "5000");
 
     apiFetch(`/api/telecaller/candidates?${params.toString()}`)
       .then((res) => res.json())
@@ -125,7 +128,7 @@ export default function TelecallerCandidatesPage() {
         setLoading(false);
       })
       .catch(() => setLoading(false));
-  }, [selectedAssembly, selectedParty, selectedCallStatus]);
+  }, [selectedAssembly, selectedCallStatus]);
 
   // Get parties for selected alliance
   const allianceParties = useMemo(() => {
@@ -134,15 +137,21 @@ export default function TelecallerCandidatesPage() {
     return alliance ? alliance.parties.map((p) => p.toLowerCase()) : null;
   }, [selectedAlliance]);
 
-  // Filter by alliance + search
+  // Filter by alliance + party + search
   const filtered = useMemo(() => {
     let result = candidates;
 
     // Filter by alliance
     if (allianceParties) {
-      result = result.filter((c) =>
-        allianceParties.some((ap) => c.partyName.toLowerCase().includes(ap))
-      );
+      result = result.filter((c) => {
+        const pLower = c.partyName.toLowerCase();
+        return allianceParties.some((ap) => pLower.includes(ap) || ap.includes(pLower));
+      });
+    }
+
+    // Filter by specific party
+    if (selectedParty) {
+      result = result.filter((c) => c.partyName === selectedParty);
     }
 
     // Filter by search
@@ -158,7 +167,16 @@ export default function TelecallerCandidatesPage() {
     }
 
     return result;
-  }, [candidates, searchQuery, allianceParties]);
+  }, [candidates, searchQuery, allianceParties, selectedParty]);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedAlliance, selectedAssembly, selectedParty, selectedCallStatus, searchQuery]);
+
+  // Pagination
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const paginatedCandidates = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   // Parties filtered by alliance for dropdown
   const filteredParties = useMemo(() => {
@@ -370,7 +388,7 @@ export default function TelecallerCandidatesPage() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((c) => (
+              {paginatedCandidates.map((c) => (
                 <tr
                   key={c._id}
                   className="border-b border-slate-50 hover:bg-slate-50/50 cursor-pointer transition-colors"
@@ -417,10 +435,64 @@ export default function TelecallerCandidatesPage() {
             </tbody>
           </table>
         </div>
-        {filtered.length === 0 && (
+        {paginatedCandidates.length === 0 && (
           <div className="text-center py-12 text-slate-400 text-sm">No candidates found.</div>
         )}
       </div>
+
+      {/* Pagination */}
+      {filtered.length > PAGE_SIZE && (
+        <div className="flex items-center justify-between mt-4 px-1">
+          <span className="text-xs text-slate-400 font-medium">
+            Showing {(currentPage - 1) * PAGE_SIZE + 1}–{Math.min(currentPage * PAGE_SIZE, filtered.length)} of {filtered.length}
+          </span>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors border ${
+                currentPage === 1 ? "bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed" : "bg-white text-slate-600 border-slate-200 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200"
+              }`}
+            >
+              <ChevronLeft size={15} />
+            </button>
+            {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
+              let pageNum: number;
+              if (totalPages <= 7) {
+                pageNum = i + 1;
+              } else if (currentPage <= 4) {
+                pageNum = i + 1;
+              } else if (currentPage >= totalPages - 3) {
+                pageNum = totalPages - 6 + i;
+              } else {
+                pageNum = currentPage - 3 + i;
+              }
+              return (
+                <button
+                  key={pageNum}
+                  onClick={() => setCurrentPage(pageNum)}
+                  className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-medium transition-colors border ${
+                    currentPage === pageNum
+                      ? "bg-indigo-600 text-white border-indigo-600"
+                      : "bg-white text-slate-600 border-slate-200 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200"
+                  }`}
+                >
+                  {pageNum}
+                </button>
+              );
+            })}
+            <button
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors border ${
+                currentPage === totalPages ? "bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed" : "bg-white text-slate-600 border-slate-200 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200"
+              }`}
+            >
+              <ChevronRight size={15} />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Candidate Detail Modal */}
       {selectedCandidate && (
