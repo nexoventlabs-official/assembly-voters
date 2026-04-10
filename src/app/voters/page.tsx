@@ -230,13 +230,39 @@ function VotersContent() {
   const hasMobile = (val?: string) => !!val && val.trim() !== "" && val.trim().toUpperCase() !== "N/A";
   const hasEmail = (val?: string) => !!val && val.trim() !== "" && val.trim().toUpperCase() !== "N/A";
 
-  const openWhatsApp = (mobile: string) => {
+  // Phone picker state
+  const [phonePicker, setPhonePicker] = useState<{ numbers: string[]; action: "whatsapp" | "call"; x: number; y: number } | null>(null);
+
+  const doWhatsApp = (mobile: string) => {
     const cleaned = mobile.replace(/[^0-9]/g, "");
     window.open(`https://wa.me/${cleaned}`, "_blank");
   };
 
+  const doCall = (mobile: string) => {
+    window.open(`tel:${mobile}`, "_self");
+  };
+
+  const handlePhoneAction = (voter: Voter, action: "whatsapp" | "call", e: React.MouseEvent) => {
+    if (!hasMobile(voter.mobile)) return;
+    const numbers = [voter.mobile];
+    if (hasMobile(voter.optionalMobile)) numbers.push(voter.optionalMobile);
+    if (numbers.length > 1) {
+      setPhonePicker({ numbers, action, x: e.clientX, y: e.clientY });
+    } else {
+      if (action === "whatsapp") doWhatsApp(voter.mobile);
+      else doCall(voter.mobile);
+    }
+  };
+
+  const pickNumber = (number: string) => {
+    if (!phonePicker) return;
+    if (phonePicker.action === "whatsapp") doWhatsApp(number);
+    else doCall(number);
+    setPhonePicker(null);
+  };
+
   const openMail = (email: string) => {
-    window.open(`mailto:${email}`, "_blank");
+    window.open(`https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(email)}`, "_blank");
   };
 
   return (
@@ -245,10 +271,10 @@ function VotersContent() {
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-8 gap-4">
         <div>
           <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
-            Voter Database
+            Candidate Database
           </h1>
           <p className="text-slate-500 mt-1">
-            View, manage, and engage with constituents across assemblies.
+            View, manage, and engage with candidates across assemblies.
           </p>
         </div>
         <Link
@@ -422,21 +448,21 @@ function VotersContent() {
                         onClick={(e) => e.stopPropagation()}
                       >
                         <button
-                          onClick={() => hasMobile(voter.mobile) && openWhatsApp(voter.mobile)}
+                          onClick={(e) => handlePhoneAction(voter, "whatsapp", e)}
                           disabled={!hasMobile(voter.mobile)}
                           className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${hasMobile(voter.mobile) ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100' : 'bg-slate-100 text-slate-300 cursor-not-allowed'}`}
                           title={hasMobile(voter.mobile) ? 'WhatsApp' : 'No mobile number'}
                         >
                           <WhatsAppIcon size={15} />
                         </button>
-                        <a
-                          href={hasMobile(voter.mobile) ? `tel:${voter.mobile}` : undefined}
-                          onClick={(e) => !hasMobile(voter.mobile) && e.preventDefault()}
+                        <button
+                          onClick={(e) => handlePhoneAction(voter, "call", e)}
+                          disabled={!hasMobile(voter.mobile)}
                           className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${hasMobile(voter.mobile) ? 'bg-blue-50 text-blue-600 hover:bg-blue-100' : 'bg-slate-100 text-slate-300 cursor-not-allowed'}`}
                           title={hasMobile(voter.mobile) ? 'Call' : 'No mobile number'}
                         >
                           <Phone size={14} />
-                        </a>
+                        </button>
                         <button
                           onClick={() => hasEmail(voter.email) && openMail(voter.email)}
                           disabled={!hasEmail(voter.email)}
@@ -543,7 +569,7 @@ function VotersContent() {
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">Quick Actions</h3>
                 <div className="flex flex-wrap items-center gap-2">
                   <button
-                    onClick={() => hasMobile(selectedVoter.mobile) && openWhatsApp(selectedVoter.mobile)}
+                    onClick={(e) => handlePhoneAction(selectedVoter, "whatsapp", e)}
                     disabled={!hasMobile(selectedVoter.mobile)}
                     className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors border ${hasMobile(selectedVoter.mobile) ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-100' : 'bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed'}`}
                   >
@@ -556,13 +582,13 @@ function VotersContent() {
                   >
                     <Mail size={15} /> Email
                   </button>
-                  <a
-                    href={hasMobile(selectedVoter.mobile) ? `tel:${selectedVoter.mobile}` : undefined}
-                    onClick={(e) => !hasMobile(selectedVoter.mobile) && e.preventDefault()}
+                  <button
+                    onClick={(e) => handlePhoneAction(selectedVoter, "call", e)}
+                    disabled={!hasMobile(selectedVoter.mobile)}
                     className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors border ${hasMobile(selectedVoter.mobile) ? 'bg-violet-50 hover:bg-violet-100 text-violet-700 border-violet-100' : 'bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed'}`}
                   >
                     <Phone size={15} /> Call
-                  </a>
+                  </button>
                 </div>
               </div>
 
@@ -717,6 +743,37 @@ function VotersContent() {
           </div>
         </div>
       )}
+
+      {/* Phone Number Picker Popup */}
+      {phonePicker && (
+        <>
+          <div className="fixed inset-0 z-[70]" onClick={() => setPhonePicker(null)} />
+          <div
+            className="fixed z-[80] bg-white rounded-xl shadow-2xl border border-slate-200 p-3 min-w-[220px] animate-in fade-in"
+            style={{
+              left: Math.min(phonePicker.x, window.innerWidth - 240),
+              top: Math.min(phonePicker.y + 8, window.innerHeight - 160),
+            }}
+          >
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider px-2 mb-2">
+              {phonePicker.action === "whatsapp" ? "WhatsApp" : "Call"} which number?
+            </p>
+            {phonePicker.numbers.map((num, i) => (
+              <button
+                key={num}
+                onClick={() => pickNumber(num)}
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors"
+              >
+                <Phone size={14} />
+                <span>{num}</span>
+                <span className="ml-auto text-[10px] font-medium text-slate-400 uppercase">
+                  {i === 0 ? "Primary" : "Secondary"}
+                </span>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -729,7 +786,7 @@ export default function VotersPage() {
           <div className="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center">
             <Loader2 className="animate-spin text-indigo-600" size={24} />
           </div>
-          <p className="text-slate-400 text-sm font-medium">Loading voters...</p>
+          <p className="text-slate-400 text-sm font-medium">Loading candidates...</p>
         </div>
       </div>
     }>

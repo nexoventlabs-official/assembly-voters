@@ -11,7 +11,7 @@ import assemblyData from "@/lib/assemblyToDistrict.json";
 const navItems = [
   { href: "/", label: "Overview", icon: LayoutDashboard },
   { href: "/performance", label: "Performance", icon: BarChart3 },
-  { href: "/voters", label: "Voter Database", icon: Users },
+  { href: "/voters", label: "Candidate Database", icon: Users },
   { href: "/candidates", label: "Party-wise", icon: Flag },
 ];
 
