@@ -10,14 +10,6 @@ import {
   Filter,
   ChevronDown,
   Loader2,
-  ThumbsUp,
-  ThumbsDown,
-  PhoneOff,
-  PhoneForwarded,
-  AlertTriangle,
-  X,
-  Clock,
-  MessageSquare,
   Users,
   ChevronLeft,
   ChevronRight,
@@ -41,12 +33,12 @@ interface Candidate {
 }
 
 const callStatusOptions = [
-  { value: "interested", label: "Interested", icon: ThumbsUp, color: "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100" },
-  { value: "not_interested", label: "Not Interested", icon: ThumbsDown, color: "bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100" },
-  { value: "no_response", label: "No Response", icon: PhoneOff, color: "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100" },
-  { value: "switch_off", label: "Switch Off", icon: PhoneOff, color: "bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200" },
-  { value: "wrong_number", label: "Wrong Number", icon: AlertTriangle, color: "bg-red-50 text-red-700 border-red-200 hover:bg-red-100" },
-  { value: "callback", label: "Callback", icon: PhoneForwarded, color: "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100" },
+  { value: "interested", label: "Interested", color: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+  { value: "not_interested", label: "Not Interested", color: "bg-rose-50 text-rose-700 border-rose-200" },
+  { value: "no_response", label: "No Response", color: "bg-amber-50 text-amber-700 border-amber-200" },
+  { value: "switch_off", label: "Switch Off", color: "bg-slate-100 text-slate-700 border-slate-200" },
+  { value: "wrong_number", label: "Wrong Number", color: "bg-red-50 text-red-700 border-red-200" },
+  { value: "callback", label: "Callback", color: "bg-blue-50 text-blue-700 border-blue-200" },
 ];
 
 // Alliance to party mapping
@@ -105,10 +97,8 @@ export default function TelecallerCandidatesPage() {
   const [selectedParty, setSelectedParty] = useState("");
   const [selectedCallStatus, setSelectedCallStatus] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
-  const [showStatusPanel, setShowStatusPanel] = useState(false);
-  const [statusNotes, setStatusNotes] = useState("");
-  const [saving, setSaving] = useState(false);
+  const [savingId, setSavingId] = useState<string | null>(null);
+  const [inlineNotes, setInlineNotes] = useState<Record<string, string>>({});
   const [phonePicker, setPhonePicker] = useState<{ numbers: string[]; action: "whatsapp" | "call"; x: number; y: number } | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const PAGE_SIZE = 50;
@@ -244,53 +234,35 @@ export default function TelecallerCandidatesPage() {
     window.open(`https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(email)}`, "_blank");
   };
 
-  const handleSetCallStatus = async (status: string) => {
-    if (!selectedCandidate) return;
-    setSaving(true);
+  const handleInlineStatus = async (candidateId: string, status: string) => {
+    setSavingId(candidateId);
     try {
       const res = await apiFetch("/api/telecaller/call-status", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          voterId: selectedCandidate._id,
+          voterId: candidateId,
           status,
-          notes: statusNotes,
+          notes: inlineNotes[candidateId] || "",
         }),
       });
       const data = await res.json();
       if (data.success) {
         setCandidates((prev) =>
           prev.map((c) =>
-            c._id === selectedCandidate._id
+            c._id === candidateId
               ? { ...c, callStatus: data.callStatus }
               : c
           )
         );
-        setSelectedCandidate((prev) =>
-          prev ? { ...prev, callStatus: data.callStatus } : prev
-        );
-        setShowStatusPanel(false);
-        setStatusNotes("");
       }
     } catch {
       console.error("Failed to save call status");
     } finally {
-      setSaving(false);
+      setSavingId(null);
     }
   };
 
-  const getStatusBadge = (callStatus: Candidate["callStatus"]) => {
-    if (!callStatus) {
-      return <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-400 font-medium">Not Called</span>;
-    }
-    const opt = callStatusOptions.find((o) => o.value === callStatus.status);
-    if (!opt) return null;
-    return (
-      <span className={`text-[10px] px-2 py-0.5 rounded-full border font-medium ${opt.color}`}>
-        {opt.label}
-      </span>
-    );
-  };
 
   if (loading) {
     return (
@@ -421,54 +393,84 @@ export default function TelecallerCandidatesPage() {
           <table className="w-full text-left">
             <thead>
               <tr className="border-b border-slate-100">
-                <th className="py-3.5 px-6 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Name</th>
-                <th className="py-3.5 px-6 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Assembly</th>
-                <th className="py-3.5 px-6 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Party</th>
-                <th className="py-3.5 px-6 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Mobile</th>
-                <th className="py-3.5 px-6 text-[11px] font-semibold uppercase tracking-wider text-slate-400 text-center">Call Status</th>
-                <th className="py-3.5 px-6 text-[11px] font-semibold uppercase tracking-wider text-slate-400 text-center">Actions</th>
+                <th className="py-3.5 px-4 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Name</th>
+                <th className="py-3.5 px-4 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Assembly</th>
+                <th className="py-3.5 px-4 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Party</th>
+                <th className="py-3.5 px-4 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Mobile</th>
+                <th className="py-3.5 px-4 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Call Status</th>
+                <th className="py-3.5 px-4 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Comment</th>
+                <th className="py-3.5 px-4 text-[11px] font-semibold uppercase tracking-wider text-slate-400 text-center">Actions</th>
               </tr>
             </thead>
             <tbody>
               {paginatedCandidates.map((c) => (
                 <tr
                   key={c._id}
-                  className="border-b border-slate-50 hover:bg-slate-50/50 cursor-pointer transition-colors"
-                  onClick={() => { setSelectedCandidate(c); setShowStatusPanel(false); setStatusNotes(""); }}
+                  className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors"
                 >
-                  <td className="py-3.5 px-6">
+                  <td className="py-3 px-4">
                     <p className="text-sm font-medium text-slate-800">{c.name}</p>
                     <p className="text-[11px] text-slate-400">{c.email || "—"}</p>
                   </td>
-                  <td className="py-3.5 px-6 text-sm text-slate-600">{c.assemblyName}</td>
-                  <td className="py-3.5 px-6 text-sm text-slate-600">{c.partyName}</td>
-                  <td className="py-3.5 px-6 text-sm text-slate-600 font-mono">{c.mobile}</td>
-                  <td className="py-3.5 px-6 text-center">{getStatusBadge(c.callStatus)}</td>
-                  <td className="py-3.5 px-6">
-                    <div className="flex items-center justify-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                  <td className="py-3 px-4 text-xs text-slate-600">{c.assemblyName}</td>
+                  <td className="py-3 px-4 text-xs text-slate-600">{c.partyName}</td>
+                  <td className="py-3 px-4 text-xs text-slate-600 font-mono">{c.mobile}</td>
+                  <td className="py-3 px-4">
+                    <div className="flex items-center gap-1.5">
+                      <select
+                        value={c.callStatus?.status || ""}
+                        disabled={savingId === c._id}
+                        onChange={(e) => {
+                          if (e.target.value) handleInlineStatus(c._id, e.target.value);
+                        }}
+                        className={`text-xs rounded-lg border px-2 py-1.5 font-medium min-w-[120px] appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500/20 ${
+                          c.callStatus
+                            ? callStatusOptions.find((o) => o.value === c.callStatus?.status)?.color || "bg-slate-50 text-slate-600 border-slate-200"
+                            : "bg-slate-50 text-slate-400 border-slate-200"
+                        }`}
+                      >
+                        <option value="">Not Called</option>
+                        {callStatusOptions.map((opt) => (
+                          <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
+                      </select>
+                      {savingId === c._id && <Loader2 size={12} className="animate-spin text-indigo-500" />}
+                    </div>
+                  </td>
+                  <td className="py-3 px-4">
+                    <input
+                      type="text"
+                      placeholder="Add note..."
+                      value={inlineNotes[c._id] ?? c.callStatus?.notes ?? ""}
+                      onChange={(e) => setInlineNotes((prev) => ({ ...prev, [c._id]: e.target.value }))}
+                      className="text-xs w-full min-w-[120px] max-w-[200px] rounded-lg border border-slate-200 px-2.5 py-1.5 text-slate-600 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-300"
+                    />
+                  </td>
+                  <td className="py-3 px-4">
+                    <div className="flex items-center justify-center gap-1.5">
                       <button
                         onClick={(e) => handlePhoneAction(c, "whatsapp", e)}
                         disabled={!hasMobile(c.mobile)}
-                        className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${hasMobile(c.mobile) ? "bg-emerald-50 text-emerald-600 hover:bg-emerald-100" : "bg-slate-100 text-slate-300 cursor-not-allowed"}`}
+                        className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${hasMobile(c.mobile) ? "bg-emerald-50 text-emerald-600 hover:bg-emerald-100" : "bg-slate-100 text-slate-300 cursor-not-allowed"}`}
                         title="WhatsApp"
                       >
-                        <WhatsAppIcon size={15} />
+                        <WhatsAppIcon size={14} />
                       </button>
                       <button
                         onClick={(e) => handlePhoneAction(c, "call", e)}
                         disabled={!hasMobile(c.mobile)}
-                        className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${hasMobile(c.mobile) ? "bg-blue-50 text-blue-600 hover:bg-blue-100" : "bg-slate-100 text-slate-300 cursor-not-allowed"}`}
+                        className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${hasMobile(c.mobile) ? "bg-blue-50 text-blue-600 hover:bg-blue-100" : "bg-slate-100 text-slate-300 cursor-not-allowed"}`}
                         title="Call"
                       >
-                        <Phone size={14} />
+                        <Phone size={13} />
                       </button>
                       <button
                         onClick={() => hasEmail(c.email) && openMail(c.email)}
                         disabled={!hasEmail(c.email)}
-                        className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${hasEmail(c.email) ? "bg-violet-50 text-violet-600 hover:bg-violet-100" : "bg-slate-100 text-slate-300 cursor-not-allowed"}`}
+                        className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${hasEmail(c.email) ? "bg-violet-50 text-violet-600 hover:bg-violet-100" : "bg-slate-100 text-slate-300 cursor-not-allowed"}`}
                         title="Email"
                       >
-                        <Mail size={14} />
+                        <Mail size={13} />
                       </button>
                     </div>
                   </td>
@@ -532,128 +534,6 @@ export default function TelecallerCandidatesPage() {
             >
               <ChevronRight size={15} />
             </button>
-          </div>
-        </div>
-      )}
-
-      {/* Candidate Detail Modal */}
-      {selectedCandidate && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={() => setSelectedCandidate(null)} />
-          <div className="relative bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-lg max-h-[90vh] overflow-y-auto">
-            {/* Header */}
-            <div className="flex items-center justify-between p-6 border-b border-slate-100">
-              <div>
-                <h2 className="text-lg font-bold text-slate-900">{selectedCandidate.name}</h2>
-                <p className="text-xs text-slate-400 mt-0.5">{selectedCandidate.assemblyName} • {selectedCandidate.partyName}</p>
-              </div>
-              <button onClick={() => setSelectedCandidate(null)} className="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400">
-                <X size={18} />
-              </button>
-            </div>
-
-            <div className="p-6 space-y-5">
-              {/* Contact Info */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
-                  <p className="text-xs text-slate-400 font-medium mb-1 flex items-center gap-1.5"><Phone size={12} /> Mobile</p>
-                  <p className="text-sm font-medium text-slate-800 font-mono">{selectedCandidate.mobile || "—"}</p>
-                </div>
-                <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
-                  <p className="text-xs text-slate-400 font-medium mb-1 flex items-center gap-1.5"><Mail size={12} /> Email</p>
-                  <p className="text-sm font-medium text-slate-800 break-words">{selectedCandidate.email || "—"}</p>
-                </div>
-                {hasMobile(selectedCandidate.optionalMobile) && (
-                  <div className="bg-slate-50 rounded-xl p-4 border border-slate-100 col-span-2">
-                    <p className="text-xs text-slate-400 font-medium mb-1 flex items-center gap-1.5"><Phone size={12} /> Secondary Mobile</p>
-                    <p className="text-sm font-medium text-slate-800 font-mono">{selectedCandidate.optionalMobile}</p>
-                  </div>
-                )}
-              </div>
-
-              {/* Quick Actions */}
-              <div className="flex flex-wrap gap-2">
-                <button
-                  onClick={(e) => handlePhoneAction(selectedCandidate, "whatsapp", e)}
-                  disabled={!hasMobile(selectedCandidate.mobile)}
-                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors border ${hasMobile(selectedCandidate.mobile) ? "bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-100" : "bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed"}`}
-                >
-                  <WhatsAppIcon size={15} /> WhatsApp
-                </button>
-                <button
-                  onClick={(e) => handlePhoneAction(selectedCandidate, "call", e)}
-                  disabled={!hasMobile(selectedCandidate.mobile)}
-                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors border ${hasMobile(selectedCandidate.mobile) ? "bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-100" : "bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed"}`}
-                >
-                  <Phone size={15} /> Call
-                </button>
-                <button
-                  onClick={() => hasEmail(selectedCandidate.email) && openMail(selectedCandidate.email)}
-                  disabled={!hasEmail(selectedCandidate.email)}
-                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors border ${hasEmail(selectedCandidate.email) ? "bg-violet-50 hover:bg-violet-100 text-violet-700 border-violet-100" : "bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed"}`}
-                >
-                  <Mail size={15} /> Email
-                </button>
-              </div>
-
-              {/* Current Status */}
-              <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
-                <div className="flex items-center justify-between mb-3">
-                  <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Call Status</p>
-                  {getStatusBadge(selectedCandidate.callStatus)}
-                </div>
-                {selectedCandidate.callStatus && (
-                  <div className="text-xs text-slate-500">
-                    <p>Last called: {new Date(selectedCandidate.callStatus.calledAt).toLocaleString("en-IN")}</p>
-                    {selectedCandidate.callStatus.notes && <p className="mt-1">Notes: {selectedCandidate.callStatus.notes}</p>}
-                  </div>
-                )}
-              </div>
-
-              {/* Update Status */}
-              {!showStatusPanel ? (
-                <button
-                  onClick={() => setShowStatusPanel(true)}
-                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold bg-indigo-600 hover:bg-indigo-700 text-white transition-colors"
-                >
-                  <Clock size={15} /> Update Call Status
-                </button>
-              ) : (
-                <div className="bg-indigo-50 rounded-xl p-4 border border-indigo-100 space-y-3">
-                  <p className="text-xs font-semibold text-indigo-700 uppercase tracking-wider">Select Status</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    {callStatusOptions.map((opt) => {
-                      const Icon = opt.icon;
-                      return (
-                        <button
-                          key={opt.value}
-                          disabled={saving}
-                          onClick={() => handleSetCallStatus(opt.value)}
-                          className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-medium transition-colors border ${opt.color}`}
-                        >
-                          <Icon size={14} /> {opt.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <div className="relative">
-                    <MessageSquare size={14} className="absolute left-3 top-3 text-slate-400" />
-                    <textarea
-                      value={statusNotes}
-                      onChange={(e) => setStatusNotes(e.target.value)}
-                      placeholder="Add notes (optional)..."
-                      rows={2}
-                      className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-300 resize-none"
-                    />
-                  </div>
-                  {saving && (
-                    <div className="flex items-center justify-center gap-2 text-sm text-indigo-600">
-                      <Loader2 size={14} className="animate-spin" /> Saving...
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
           </div>
         </div>
       )}

@@ -4,10 +4,11 @@ import { Suspense } from "react";
 import { usePathname } from "next/navigation";
 import { AuthProvider, useAuth } from "@/lib/auth";
 import Sidebar from "@/components/Sidebar";
+import TelecallerNavbar from "@/components/TelecallerNavbar";
 import { Loader2 } from "lucide-react";
 
 function InnerShell({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, role } = useAuth();
   const pathname = usePathname();
   const isLoginPage = pathname === "/login";
 
@@ -24,7 +25,19 @@ function InnerShell({ children }: { children: React.ReactNode }) {
     return <main className="flex-1 overflow-y-auto bg-[#f8fafc]">{children}</main>;
   }
 
-  // Authenticated: show sidebar + content
+  // Telecaller: top navbar + vertical content
+  if (role === "telecaller") {
+    return (
+      <div className="flex flex-col h-screen w-full">
+        <Suspense>
+          <TelecallerNavbar />
+        </Suspense>
+        <main className="flex-1 overflow-y-auto bg-[#f8fafc]">{children}</main>
+      </div>
+    );
+  }
+
+  // Admin: show sidebar + content
   return (
     <>
       <Suspense>

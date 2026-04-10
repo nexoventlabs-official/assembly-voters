@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import {
-  Phone,
   PhoneOff,
   PhoneForwarded,
   ThumbsUp,
@@ -14,6 +13,7 @@ import {
   Loader2,
   BarChart3,
   Activity,
+  Phone,
 } from "lucide-react";
 
 interface CallStatusStats {
@@ -29,19 +29,6 @@ interface CallStatusStats {
   todayCalls: number;
 }
 
-interface RecentCall {
-  _id: string;
-  voterId: {
-    name: string;
-    mobile: string;
-    assemblyName: string;
-    partyName: string;
-  };
-  status: string;
-  notes: string;
-  calledAt: string;
-}
-
 const statusLabels: Record<string, { label: string; color: string; bg: string; icon: React.ElementType }> = {
   interested: { label: "Interested", color: "text-emerald-700", bg: "bg-emerald-50 border-emerald-100", icon: ThumbsUp },
   not_interested: { label: "Not Interested", color: "text-rose-700", bg: "bg-rose-50 border-rose-100", icon: ThumbsDown },
@@ -54,7 +41,6 @@ const statusLabels: Record<string, { label: string; color: string; bg: string; i
 export default function TelecallerDashboard() {
   const { username } = useAuth();
   const [stats, setStats] = useState<CallStatusStats | null>(null);
-  const [recentCalls, setRecentCalls] = useState<RecentCall[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -62,7 +48,6 @@ export default function TelecallerDashboard() {
       .then((res) => res.json())
       .then((data) => {
         setStats(data.stats);
-        setRecentCalls(data.recentCalls || []);
         setLoading(false);
       })
       .catch(() => setLoading(false));
@@ -151,39 +136,6 @@ export default function TelecallerDashboard() {
         </div>
       </div>
 
-      {/* Recent Calls */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-6">
-        <h3 className="text-sm font-semibold text-slate-800 mb-4">Recent Calls</h3>
-        {recentCalls.length === 0 ? (
-          <p className="text-sm text-slate-400 text-center py-8">No calls yet. Start calling candidates!</p>
-        ) : (
-          <div className="space-y-2">
-            {recentCalls.map((call) => {
-              const statusInfo = statusLabels[call.status] || { label: call.status, color: "text-slate-600", bg: "bg-slate-50 border-slate-100", icon: Phone };
-              const StatusIcon = statusInfo.icon;
-              return (
-                <div key={call._id} className="flex items-center gap-4 p-3 rounded-xl hover:bg-slate-50 transition-colors">
-                  <div className={`w-9 h-9 rounded-lg ${statusInfo.bg} border flex items-center justify-center shrink-0`}>
-                    <StatusIcon size={15} className={statusInfo.color} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-slate-800 truncate">{call.voterId?.name || "Unknown"}</p>
-                    <p className="text-[11px] text-slate-400">
-                      {call.voterId?.assemblyName} • {call.voterId?.partyName}
-                    </p>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <span className={`text-xs font-semibold ${statusInfo.color}`}>{statusInfo.label}</span>
-                    <p className="text-[10px] text-slate-400 mt-0.5">
-                      {new Date(call.calledAt).toLocaleString("en-IN", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "short" })}
-                    </p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
     </div>
   );
 }
