@@ -233,7 +233,8 @@ export default function TelecallerCandidatesPage() {
 
   const doWhatsApp = (mobile: string) => {
     const cleaned = mobile.replace(/[^0-9]/g, "");
-    window.open(`https://wa.me/${cleaned}`, "_blank");
+    const withCountry = cleaned.startsWith("91") ? cleaned : `91${cleaned}`;
+    window.open(`https://live.wati.io/919629456036/teamInbox/${withCountry}`, "_blank");
   };
 
   const doCall = (mobile: string) => {
