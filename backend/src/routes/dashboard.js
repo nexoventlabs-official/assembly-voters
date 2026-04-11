@@ -4,6 +4,10 @@ const { connectDB, VoterModel } = require("../lib/mongodb");
 const { getAllVoters } = require("../lib/google-sheets");
 const router = express.Router();
 
+function titleCase(str) {
+  return str.replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 // GET /api/dashboard
 router.get("/", async (req, res) => {
   try {
@@ -64,7 +68,7 @@ router.post("/sync", async (req, res) => {
                   email: (v.email || "").trim(),
                   mobile: (v.mobile || "").trim(),
                   optionalMobile: (v.optionalMobile || "").trim(),
-                  partyName: (v.partyName || "").trim(),
+                  partyName: titleCase((v.partyName || "").trim()),
                   assemblyName: (v.assemblyName || v.sheetName || "").trim(),
                   status: v.status,
                   isDuplicate: v.isDuplicate,

@@ -1,6 +1,11 @@
 const { connectDB, VoterModel } = require("./mongodb");
 const { getAllVoters } = require("./google-sheets");
 
+// Capitalize first letter of each word to normalize party/assembly names
+function titleCase(str) {
+  return str.replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 let isSyncing = false;
 let lastSyncTime = null;
 let lastSyncCount = 0;
@@ -43,7 +48,7 @@ async function runSync() {
                 email: (v.email || "").trim(),
                 mobile: (v.mobile || "").trim(),
                 optionalMobile: (v.optionalMobile || "").trim(),
-                partyName: (v.partyName || "").trim(),
+                partyName: titleCase((v.partyName || "").trim()),
                 assemblyName: (v.assemblyName || v.sheetName || "").trim(),
                 status: v.status,
                 isDuplicate: v.isDuplicate,

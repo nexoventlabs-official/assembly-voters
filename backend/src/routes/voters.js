@@ -11,6 +11,10 @@ const { connectDB, VoterModel } = require("../lib/mongodb");
 const XLSX = require("xlsx");
 const router = express.Router();
 
+function titleCase(str) {
+  return str.replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 // GET /api/voters?assembly=xxx&status=xxx
 router.get("/", async (req, res) => {
   try {
@@ -57,7 +61,7 @@ router.get("/all", async (req, res) => {
                   email: (v.email || "").trim(),
                   mobile: (v.mobile || "").trim(),
                   optionalMobile: (v.optionalMobile || "").trim(),
-                  partyName: (v.partyName || "").trim(),
+                  partyName: titleCase((v.partyName || "").trim()),
                   assemblyName: (v.assemblyName || v.sheetName || "").trim(),
                   status: v.status,
                   isDuplicate: v.isDuplicate,
