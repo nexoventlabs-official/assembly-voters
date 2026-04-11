@@ -39,6 +39,7 @@ interface TelecallerStats {
   first_call_completed: number;
   second_call_completed: number;
   third_call_completed: number;
+  withdrawn: number;
   todayCalls: number;
 }
 
@@ -52,6 +53,7 @@ const statusConfig: { key: string; label: string; color: string; bg: string; bor
   { key: "first_call_completed", label: "1st Call Done", color: "text-cyan-700", bg: "bg-cyan-50", border: "border-cyan-100" },
   { key: "second_call_completed", label: "2nd Call Done", color: "text-indigo-700", bg: "bg-indigo-50", border: "border-indigo-100" },
   { key: "third_call_completed", label: "3rd Call Done", color: "text-purple-700", bg: "bg-purple-50", border: "border-purple-100" },
+  { key: "withdrawn", label: "Withdrawn", color: "text-orange-700", bg: "bg-orange-50", border: "border-orange-100" },
 ];
 
 const statusLabelMap: Record<string, { label: string; color: string; bg: string }> = {};
@@ -93,6 +95,7 @@ export default function TelecallerDetailPage() {
             first_call_completed: tcStats.first_call_completed || 0,
             second_call_completed: tcStats.second_call_completed || 0,
             third_call_completed: tcStats.third_call_completed || 0,
+            withdrawn: tcStats.withdrawn || 0,
             todayCalls: tcStats.todayCalls,
           });
         }

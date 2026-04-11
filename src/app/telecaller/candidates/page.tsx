@@ -44,6 +44,7 @@ const callStatusOptions = [
   { value: "first_call_completed", label: "1st Call Done", color: "bg-cyan-50 text-cyan-700 border-cyan-200" },
   { value: "second_call_completed", label: "2nd Call Done", color: "bg-indigo-50 text-indigo-700 border-indigo-200" },
   { value: "third_call_completed", label: "3rd Call Done", color: "bg-purple-50 text-purple-700 border-purple-200" },
+  { value: "withdrawn", label: "Withdrawn", color: "bg-orange-50 text-orange-700 border-orange-200" },
 ];
 
 // Alliance to party mapping
@@ -100,6 +101,7 @@ const statusFilterOptions = [
   { value: "first_call_completed", label: "1st Call Done" },
   { value: "second_call_completed", label: "2nd Call Done" },
   { value: "third_call_completed", label: "3rd Call Done" },
+  { value: "withdrawn", label: "Withdrawn" },
 ];
 
 export default function TelecallerCandidatesPage() {

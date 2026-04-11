@@ -30,6 +30,7 @@ interface CallStatusStats {
   first_call_completed: number;
   second_call_completed: number;
   third_call_completed: number;
+  withdrawn: number;
   todayCalls: number;
 }
 
@@ -43,6 +44,7 @@ const statusLabels: Record<string, { label: string; color: string; bg: string; i
   first_call_completed: { label: "1st Call Done", color: "text-cyan-700", bg: "bg-cyan-50 border-cyan-100", icon: CheckCircle },
   second_call_completed: { label: "2nd Call Done", color: "text-indigo-700", bg: "bg-indigo-50 border-indigo-100", icon: CheckCircle },
   third_call_completed: { label: "3rd Call Done", color: "text-purple-700", bg: "bg-purple-50 border-purple-100", icon: CheckCircle },
+  withdrawn: { label: "Withdrawn", color: "text-orange-700", bg: "bg-orange-50 border-orange-100", icon: AlertTriangle },
 };
 
 export default function TelecallerDashboard() {

@@ -168,6 +168,7 @@ router.get("/stats", async (req, res) => {
       first_call_completed: 0,
       second_call_completed: 0,
       third_call_completed: 0,
+      withdrawn: 0,
     };
 
     for (const s of statusCounts) {
@@ -266,6 +267,7 @@ router.get("/admin/overview", async (req, res) => {
         first_call_completed: 0,
         second_call_completed: 0,
         third_call_completed: 0,
+        withdrawn: 0,
       };
 
       for (const s of statusCounts) {

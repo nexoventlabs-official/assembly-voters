@@ -25,6 +25,7 @@ interface TelecallerStat {
   first_call_completed: number;
   second_call_completed: number;
   third_call_completed: number;
+  withdrawn: number;
   todayCalls: number;
 }
 
@@ -38,6 +39,7 @@ const statusConfig: { key: string; label: string; shortLabel: string; color: str
   { key: "first_call_completed", label: "1st Call Done", shortLabel: "1st Call", color: "text-cyan-700", bg: "bg-cyan-50" },
   { key: "second_call_completed", label: "2nd Call Done", shortLabel: "2nd Call", color: "text-indigo-700", bg: "bg-indigo-50" },
   { key: "third_call_completed", label: "3rd Call Done", shortLabel: "3rd Call", color: "text-purple-700", bg: "bg-purple-50" },
+  { key: "withdrawn", label: "Withdrawn", shortLabel: "Withdrawn", color: "text-orange-700", bg: "bg-orange-50" },
 ];
 
 export default function TelecallersPage() {
