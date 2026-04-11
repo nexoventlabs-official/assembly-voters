@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { apiFetch } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
 import WhatsAppIcon from "@/components/WhatsAppIcon";
 import {
   Search,
@@ -79,6 +80,14 @@ const ALL_ALLIANCE_PARTIES = ALLIANCES
   .filter((a) => a.value !== "others")
   .flatMap((a) => a.parties.map((p) => p.toLowerCase()));
 
+// Locked alliance per telecaller — they cannot change this filter
+const TELECALLER_ALLIANCE_LOCK: Record<string, string> = {
+  Telecaller1: "spa",
+  Telecaller2: "nda",
+  Telecaller3: "ntk",
+  Telecaller4: "tvk",
+};
+
 const statusFilterOptions = [
   { value: "", label: "All" },
   { value: "not_called", label: "Not Called" },
@@ -94,13 +103,16 @@ const statusFilterOptions = [
 ];
 
 export default function TelecallerCandidatesPage() {
+  const { username } = useAuth();
+  const lockedAlliance = username ? TELECALLER_ALLIANCE_LOCK[username] || "" : "";
+
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [loading, setLoading] = useState(true);
   const [assemblies, setAssemblies] = useState<string[]>([]);
   const [parties, setParties] = useState<string[]>([]);
   const [selectedAssembly, setSelectedAssembly] = useState("");
   const [showAllianceFilter, setShowAllianceFilter] = useState(false);
-  const [selectedAlliance, setSelectedAlliance] = useState("");
+  const [selectedAlliance, setSelectedAlliance] = useState(lockedAlliance);
   const [selectedParty, setSelectedParty] = useState("");
   const [selectedCallStatus, setSelectedCallStatus] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -109,6 +121,14 @@ export default function TelecallerCandidatesPage() {
   const [phonePicker, setPhonePicker] = useState<{ numbers: string[]; action: "whatsapp" | "call"; x: number; y: number } | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const PAGE_SIZE = 50;
+
+  // Lock alliance filter for assigned telecallers
+  useEffect(() => {
+    if (lockedAlliance) {
+      setSelectedAlliance(lockedAlliance);
+      setShowAllianceFilter(true);
+    }
+  }, [lockedAlliance]);
 
   // Fetch assemblies
   useEffect(() => {
@@ -300,21 +320,23 @@ export default function TelecallerCandidatesPage() {
       {/* Filters */}
       <div className="flex flex-col sm:flex-row flex-wrap gap-3 mb-6">
         {/* Alliance filter toggle button */}
-        <button
-          onClick={() => {
-            const next = !showAllianceFilter;
-            setShowAllianceFilter(next);
-            if (!next) { setSelectedAlliance(""); setSelectedParty(""); }
-          }}
-          className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors border ${
-            showAllianceFilter
-              ? "bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100"
-              : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
-          }`}
-        >
-          <Users size={15} />
-          {showAllianceFilter ? "Hide Alliance" : "Filter by Alliance"}
-        </button>
+        {!lockedAlliance && (
+          <button
+            onClick={() => {
+              const next = !showAllianceFilter;
+              setShowAllianceFilter(next);
+              if (!next) { setSelectedAlliance(""); setSelectedParty(""); }
+            }}
+            className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors border ${
+              showAllianceFilter
+                ? "bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100"
+                : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+            }`}
+          >
+            <Users size={15} />
+            {showAllianceFilter ? "Hide Alliance" : "Filter by Alliance"}
+          </button>
+        )}
 
         {/* Alliance filter dropdown (only shown when toggled on) */}
         {showAllianceFilter && (
@@ -322,8 +344,9 @@ export default function TelecallerCandidatesPage() {
             <Users size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
             <select
               value={selectedAlliance}
-              onChange={(e) => { setSelectedAlliance(e.target.value); setSelectedParty(""); }}
-              className="appearance-none input-field pl-10 pr-9 py-2.5 text-sm font-medium min-w-[280px]"
+              onChange={(e) => { if (!lockedAlliance) { setSelectedAlliance(e.target.value); setSelectedParty(""); } }}
+              disabled={!!lockedAlliance}
+              className={`appearance-none input-field pl-10 pr-9 py-2.5 text-sm font-medium min-w-[280px] ${lockedAlliance ? "opacity-70 cursor-not-allowed bg-slate-50" : ""}`}
             >
               <option value="">Select Alliance</option>
               {ALLIANCES.map((a) => (
