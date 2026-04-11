@@ -14,6 +14,7 @@ import {
   ChevronRight,
   X,
   Clock,
+  Download,
 } from "lucide-react";
 
 interface CallLog {
@@ -141,6 +142,113 @@ export default function TelecallerDetailPage() {
 
   const totalPages = Math.max(1, Math.ceil(totalCalls / PAGE_SIZE));
 
+  const handleDownloadReport = async () => {
+    // Fetch all call logs (not just current page)
+    let allCalls = calls;
+    if (totalCalls > PAGE_SIZE) {
+      try {
+        const res = await apiFetch(`/api/telecaller/admin/${username}/calls?page=1&limit=9999`);
+        const data = await res.json();
+        allCalls = data.calls || [];
+      } catch { /* use current page calls as fallback */ }
+    }
+
+    const now = new Date().toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+
+    const statusRows = statusConfig
+      .map((s) => {
+        const val = stats ? (stats as unknown as Record<string, number>)[s.key] || 0 : 0;
+        return `<td style="text-align:center;padding:6px 10px;font-weight:700;color:#333;">${val}</td>`;
+      })
+      .join("");
+    const statusHeaders = statusConfig.map((s) => `<th style="text-align:center;padding:6px 10px;font-size:10px;color:#666;font-weight:600;">${s.label}</th>`).join("");
+
+    const callRows = allCalls
+      .map(
+        (c) => {
+          const sl = statusLabelMap[c.status] || { label: c.status };
+          return `<tr>
+            <td style="padding:6px 10px;font-size:11px;">${c.voterId?.name || "—"}</td>
+            <td style="padding:6px 10px;font-size:11px;">${c.voterId?.assemblyName || "—"}</td>
+            <td style="padding:6px 10px;font-size:11px;">${c.voterId?.partyName || "—"}</td>
+            <td style="padding:6px 10px;font-size:11px;font-family:monospace;">${c.voterId?.mobile || "—"}</td>
+            <td style="padding:6px 10px;font-size:11px;font-weight:600;">${sl.label}</td>
+            <td style="padding:6px 10px;font-size:11px;">${c.notes || "—"}</td>
+            <td style="padding:6px 10px;font-size:11px;white-space:nowrap;">${new Date(c.calledAt).toLocaleString("en-IN", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</td>
+          </tr>`;
+        }
+      )
+      .join("");
+
+    const html = `<!DOCTYPE html>
+<html>
+<head>
+  <title>${displayName} Report</title>
+  <style>
+    @page { size: landscape; margin: 15mm; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #1e293b; margin: 0; padding: 20px; }
+    h1 { font-size: 22px; margin: 0; }
+    .subtitle { color: #64748b; font-size: 12px; margin-top: 4px; }
+    .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; border-bottom: 2px solid #e2e8f0; padding-bottom: 15px; }
+    .stats-grid { display: flex; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
+    .stat-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 16px; text-align: center; min-width: 90px; }
+    .stat-value { font-size: 22px; font-weight: 800; color: #1e293b; }
+    .stat-label { font-size: 10px; color: #64748b; font-weight: 600; margin-top: 2px; }
+    table { width: 100%; border-collapse: collapse; font-size: 11px; }
+    thead th { background: #f1f5f9; padding: 8px 10px; text-align: left; font-size: 10px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid #e2e8f0; }
+    tbody tr { border-bottom: 1px solid #f1f5f9; }
+    tbody tr:nth-child(even) { background: #fafbfc; }
+    .status-table { margin-bottom: 20px; }
+    .status-table table { width: auto; }
+    .status-table td, .status-table th { border: 1px solid #e2e8f0; }
+    @media print { body { padding: 0; } }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <h1>${displayName} — Call Report</h1>
+      <p class="subtitle">Generated on ${now}</p>
+    </div>
+    <div style="text-align:right">
+      <div class="stat-value">${stats?.totalCalled || 0}</div>
+      <div class="stat-label">Total Unique Candidates Called</div>
+    </div>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-card"><div class="stat-value">${stats?.totalCalled || 0}</div><div class="stat-label">Total Calls</div></div>
+    <div class="stat-card"><div class="stat-value">${stats?.todayCalls || 0}</div><div class="stat-label">Today's Calls</div></div>
+    <div class="stat-card"><div class="stat-value">${stats?.interested || 0}</div><div class="stat-label">Interested</div></div>
+    <div class="stat-card"><div class="stat-value">${totalCalls}</div><div class="stat-label">Log Entries</div></div>
+  </div>
+
+  <div class="status-table">
+    <h3 style="font-size:13px;margin-bottom:8px;">Status Breakdown</h3>
+    <table><thead><tr>${statusHeaders}</tr></thead><tbody><tr>${statusRows}</tr></tbody></table>
+  </div>
+
+  <h3 style="font-size:13px;margin-bottom:8px;">Call Logs (${allCalls.length} candidates)</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Candidate</th><th>Assembly</th><th>Party</th><th>Mobile</th><th>Status</th><th>Notes</th><th>Last Called</th>
+      </tr>
+    </thead>
+    <tbody>${callRows}</tbody>
+  </table>
+
+  <script>window.onload = function() { window.print(); }</script>
+</body>
+</html>`;
+
+    const printWindow = window.open("", "_blank");
+    if (printWindow) {
+      printWindow.document.write(html);
+      printWindow.document.close();
+    }
+  };
+
   if (loading && !stats) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -164,14 +272,22 @@ export default function TelecallerDetailPage() {
         >
           <ArrowLeft size={16} /> Back to Telecallers
         </button>
-        <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-indigo-500/20">
-            {displayName.split(" ")[1] || "T"}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-indigo-500/20">
+              {displayName.split(" ")[1] || "T"}
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold text-slate-900 tracking-tight">{displayName}</h1>
+              <p className="text-slate-500 mt-0.5">Call logs and performance details</p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-3xl font-bold text-slate-900 tracking-tight">{displayName}</h1>
-            <p className="text-slate-500 mt-0.5">Call logs and performance details</p>
-          </div>
+          <button
+            onClick={handleDownloadReport}
+            className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white text-sm font-medium rounded-xl hover:bg-indigo-700 transition-colors shadow-md shadow-indigo-500/20"
+          >
+            <Download size={16} /> Download Report
+          </button>
         </div>
       </div>
 
