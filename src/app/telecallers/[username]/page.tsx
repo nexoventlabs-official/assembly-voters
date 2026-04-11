@@ -12,17 +12,29 @@ import {
   BarChart3,
   ChevronLeft,
   ChevronRight,
+  X,
+  Clock,
 } from "lucide-react";
 
 interface CallLog {
   _id: string;
   voterId: {
+    _id?: string;
     name: string;
     mobile: string;
     email: string;
     assemblyName: string;
     partyName: string;
   } | null;
+  voterObjectId?: string;
+  status: string;
+  notes: string;
+  calledAt: string;
+  callCount?: number;
+}
+
+interface HistoryEntry {
+  _id: string;
   status: string;
   notes: string;
   calledAt: string;
@@ -73,6 +85,27 @@ export default function TelecallerDetailPage() {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 50;
+
+  // Candidate history panel
+  const [historyVoterId, setHistoryVoterId] = useState<string | null>(null);
+  const [historyVoter, setHistoryVoter] = useState<CallLog["voterId"] | null>(null);
+  const [historyEntries, setHistoryEntries] = useState<HistoryEntry[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+
+  const openHistory = async (voterId: string, voter: CallLog["voterId"]) => {
+    setHistoryVoterId(voterId);
+    setHistoryVoter(voter);
+    setHistoryLoading(true);
+    try {
+      const res = await apiFetch(`/api/telecaller/admin/${username}/candidate/${voterId}`);
+      const data = await res.json();
+      setHistoryEntries(data.history || []);
+    } catch {
+      setHistoryEntries([]);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
 
   useEffect(() => {
     Promise.all([
@@ -199,7 +232,7 @@ export default function TelecallerDetailPage() {
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden mb-4">
         <div className="p-5 border-b border-slate-100">
           <h3 className="text-sm font-semibold text-slate-800">Call Logs</h3>
-          <p className="text-xs text-slate-400 mt-0.5">{totalCalls} total entries</p>
+          <p className="text-xs text-slate-400 mt-0.5">{totalCalls} unique candidates called</p>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left">
@@ -209,9 +242,9 @@ export default function TelecallerDetailPage() {
                 <th className="py-3 px-5 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Assembly</th>
                 <th className="py-3 px-5 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Party</th>
                 <th className="py-3 px-5 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Mobile</th>
-                <th className="py-3 px-5 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Status</th>
+                <th className="py-3 px-5 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Latest Status</th>
                 <th className="py-3 px-5 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Notes</th>
-                <th className="py-3 px-5 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Date</th>
+                <th className="py-3 px-5 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Last Called</th>
               </tr>
             </thead>
             <tbody>
@@ -228,11 +261,24 @@ export default function TelecallerDetailPage() {
               ) : (
                 calls.map((call) => {
                   const s = statusLabelMap[call.status] || { label: call.status, color: "text-slate-600", bg: "bg-slate-50" };
+                  const vid = call.voterObjectId || call.voterId?._id || "";
                   return (
                     <tr key={call._id} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
                       <td className="py-3 px-5">
-                        <p className="text-sm font-medium text-slate-800">{call.voterId?.name || "—"}</p>
-                        <p className="text-[11px] text-slate-400">{call.voterId?.email || ""}</p>
+                        <button
+                          onClick={() => vid && openHistory(vid, call.voterId)}
+                          className="text-left group"
+                        >
+                          <p className="text-sm font-medium text-indigo-600 group-hover:text-indigo-800 group-hover:underline">
+                            {call.voterId?.name || "—"}
+                            {(call.callCount || 0) > 1 && (
+                              <span className="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-violet-100 text-violet-700 border border-violet-200">
+                                {call.callCount} calls
+                              </span>
+                            )}
+                          </p>
+                          <p className="text-[11px] text-slate-400">{call.voterId?.email || ""}</p>
+                        </button>
                       </td>
                       <td className="py-3 px-5 text-xs text-slate-600">{call.voterId?.assemblyName || "—"}</td>
                       <td className="py-3 px-5 text-xs text-slate-600">{call.voterId?.partyName || "—"}</td>
@@ -264,7 +310,7 @@ export default function TelecallerDetailPage() {
       {totalCalls > PAGE_SIZE && (
         <div className="flex items-center justify-between px-1">
           <span className="text-xs text-slate-400 font-medium">
-            Page {page} of {totalPages} ({totalCalls} entries)
+            Page {page} of {totalPages} ({totalCalls} candidates)
           </span>
           <div className="flex items-center gap-1">
             <button
@@ -285,6 +331,76 @@ export default function TelecallerDetailPage() {
             >
               <ChevronRight size={15} />
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Candidate History Slide-over */}
+      {historyVoterId && (
+        <div className="fixed inset-0 z-50 flex justify-end">
+          <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={() => setHistoryVoterId(null)} />
+          <div className="relative w-full max-w-lg bg-white shadow-2xl overflow-y-auto animate-in slide-in-from-right">
+            <div className="sticky top-0 bg-white border-b border-slate-200 p-5 flex items-center justify-between z-10">
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">{historyVoter?.name || "Candidate"}</h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  {historyVoter?.assemblyName} • {historyVoter?.partyName} • {historyVoter?.mobile}
+                </p>
+              </div>
+              <button
+                onClick={() => setHistoryVoterId(null)}
+                className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-slate-100 transition-colors"
+              >
+                <X size={18} className="text-slate-500" />
+              </button>
+            </div>
+            <div className="p-5">
+              <h4 className="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
+                <Clock size={14} /> Call History ({historyEntries.length} entries)
+              </h4>
+              {historyLoading ? (
+                <div className="flex justify-center py-8">
+                  <Loader2 size={20} className="animate-spin text-indigo-500" />
+                </div>
+              ) : historyEntries.length === 0 ? (
+                <p className="text-sm text-slate-400 text-center py-8">No call history found.</p>
+              ) : (
+                <div className="space-y-3">
+                  {historyEntries.map((entry, idx) => {
+                    const es = statusLabelMap[entry.status] || { label: entry.status, color: "text-slate-600", bg: "bg-slate-50" };
+                    return (
+                      <div
+                        key={entry._id}
+                        className={`relative rounded-xl border p-4 ${idx === 0 ? "border-indigo-200 bg-indigo-50/30" : "border-slate-100 bg-white"}`}
+                      >
+                        {idx === 0 && (
+                          <span className="absolute top-2 right-3 text-[9px] font-bold text-indigo-500 uppercase">Latest</span>
+                        )}
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className={`text-[10px] font-semibold ${es.color} px-2.5 py-1 rounded-full ${es.bg}`}>
+                            {es.label}
+                          </span>
+                          <span className="text-[11px] text-slate-400">
+                            {new Date(entry.calledAt).toLocaleString("en-IN", {
+                              day: "2-digit",
+                              month: "short",
+                              year: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </span>
+                        </div>
+                        {entry.notes && (
+                          <p className="text-xs text-slate-600 mt-1 bg-white rounded-lg px-3 py-2 border border-slate-100">
+                            {entry.notes}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

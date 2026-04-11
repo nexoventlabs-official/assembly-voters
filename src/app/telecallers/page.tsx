@@ -27,6 +27,7 @@ interface TelecallerStat {
   third_call_completed: number;
   withdrawn: number;
   todayCalls: number;
+  assignedCount?: number;
 }
 
 const statusConfig: { key: string; label: string; shortLabel: string; color: string; bg: string }[] = [
@@ -135,7 +136,7 @@ export default function TelecallersPage() {
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-slate-800">{tc.displayName}</p>
-                  <p className="text-[11px] text-slate-400">{tc.totalCalled} calls made</p>
+                  <p className="text-[11px] text-slate-400">{tc.totalCalled} / {tc.assignedCount ?? totalAccepted} assigned</p>
                 </div>
               </div>
               <div className="flex items-center gap-1 text-slate-400">
@@ -148,7 +149,7 @@ export default function TelecallersPage() {
             <div className="w-full bg-slate-100 rounded-full h-2 mb-3">
               <div
                 className="bg-gradient-to-r from-indigo-500 to-violet-500 h-2 rounded-full transition-all"
-                style={{ width: `${totalAccepted > 0 ? (tc.totalCalled / totalAccepted) * 100 : 0}%` }}
+                style={{ width: `${(tc.assignedCount ?? totalAccepted) > 0 ? (tc.totalCalled / (tc.assignedCount ?? totalAccepted)) * 100 : 0}%` }}
               ></div>
             </div>
 

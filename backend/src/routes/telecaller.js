@@ -163,7 +163,29 @@ router.get("/stats", async (req, res) => {
     await connectDB();
     const telecaller = req.user.username;
 
-    const totalAccepted = await VoterModel.countDocuments({});
+    const TC_ALLIANCE_STATS = {
+      Telecaller1: "spa",
+      Telecaller2: "nda",
+      Telecaller3: "ntk",
+      Telecaller4: "tvk",
+    };
+    const ALLIANCE_PARTIES_STATS = {
+      spa: ["dravida munnetra kazhagam", "indian national congress", "desiya murpokku dravida kazhagam", "viduthalai chiruthaigal katchi", "communist party of india (marxist)", "communist party of india", "marumalarchi dravida munnetra kazhagam"],
+      nda: ["all india anna dravida munnetra kazhagam", "bharatiya janata party", "pattali makkal katchi", "amma makkal munnettra kazagam"],
+      ntk: ["ntk", "naam tamilar katchi", "naam tamilar"],
+      tvk: ["tvk", "tamil vettri kazhagam", "tamilaga vettri kazhagam"],
+    };
+
+    let totalAccepted;
+    const allianceKey = TC_ALLIANCE_STATS[telecaller];
+    if (allianceKey && ALLIANCE_PARTIES_STATS[allianceKey]) {
+      const partyRegexes = ALLIANCE_PARTIES_STATS[allianceKey].map(
+        (p) => new RegExp(`^${p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i")
+      );
+      totalAccepted = await VoterModel.countDocuments({ partyName: { $in: partyRegexes } });
+    } else {
+      totalAccepted = await VoterModel.countDocuments({});
+    }
 
     // Get all call statuses by this telecaller
     const statusCounts = await CallStatusModel.aggregate([
@@ -259,6 +281,19 @@ router.get("/admin/overview", async (req, res) => {
 
     await connectDB();
 
+    const ALLIANCE_PARTIES = {
+      spa: ["dravida munnetra kazhagam", "indian national congress", "desiya murpokku dravida kazhagam", "viduthalai chiruthaigal katchi", "communist party of india (marxist)", "communist party of india", "marumalarchi dravida munnetra kazhagam"],
+      nda: ["all india anna dravida munnetra kazhagam", "bharatiya janata party", "pattali makkal katchi", "amma makkal munnettra kazagam"],
+      ntk: ["ntk", "naam tamilar katchi", "naam tamilar"],
+      tvk: ["tvk", "tamil vettri kazhagam", "tamilaga vettri kazhagam"],
+    };
+    const TC_ALLIANCE = {
+      Telecaller1: "spa",
+      Telecaller2: "nda",
+      Telecaller3: "ntk",
+      Telecaller4: "tvk",
+    };
+
     const telecallerNames = ["Telecaller1", "Telecaller2", "Telecaller3", "Telecaller4", "Telecaller5", "Telecaller6"];
     const totalAccepted = await VoterModel.countDocuments({});
 
@@ -311,6 +346,19 @@ router.get("/admin/overview", async (req, res) => {
         calledAt: { $gte: todayStart },
       });
 
+      // Assigned candidate count based on alliance
+      const allianceKey = TC_ALLIANCE[tc];
+      if (allianceKey && ALLIANCE_PARTIES[allianceKey]) {
+        const partyRegexes = ALLIANCE_PARTIES[allianceKey].map(
+          (p) => new RegExp(`^${p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i")
+        );
+        stats.assignedCount = await VoterModel.countDocuments({
+          partyName: { $in: partyRegexes },
+        });
+      } else {
+        stats.assignedCount = totalAccepted;
+      }
+
       telecallerStats.push(stats);
     }
 
@@ -321,7 +369,7 @@ router.get("/admin/overview", async (req, res) => {
   }
 });
 
-// GET /api/telecaller/admin/:telecaller/calls — detailed call logs for a telecaller (admin)
+// GET /api/telecaller/admin/:telecaller/calls — deduplicated call logs (latest per candidate)
 router.get("/admin/:telecaller/calls", async (req, res) => {
   try {
     if (req.user.role !== "admin") {
@@ -333,18 +381,74 @@ router.get("/admin/:telecaller/calls", async (req, res) => {
     const { page = 1, limit = 50 } = req.query;
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    const total = await CallStatusModel.countDocuments({ telecaller });
-    const calls = await CallStatusModel.find({ telecaller })
-      .sort({ calledAt: -1 })
-      .skip(skip)
-      .limit(parseInt(limit))
-      .populate("voterId", "name mobile email assemblyName partyName")
+    // Aggregate: get latest call per candidate
+    const pipeline = [
+      { $match: { telecaller } },
+      { $sort: { calledAt: -1 } },
+      {
+        $group: {
+          _id: "$voterId",
+          latestId: { $first: "$_id" },
+          latestStatus: { $first: "$status" },
+          latestNotes: { $first: "$notes" },
+          latestCalledAt: { $first: "$calledAt" },
+          callCount: { $sum: 1 },
+        },
+      },
+      { $sort: { latestCalledAt: -1 } },
+    ];
+
+    const allGrouped = await CallStatusModel.aggregate(pipeline);
+    const total = allGrouped.length;
+    const paged = allGrouped.slice(skip, skip + parseInt(limit));
+
+    // Populate voter info
+    const voterIds = paged.map((g) => g._id);
+    const voters = await VoterModel.find({ _id: { $in: voterIds } })
+      .select("name mobile email assemblyName partyName")
       .lean();
+    const voterMap = {};
+    voters.forEach((v) => { voterMap[v._id.toString()] = v; });
+
+    const calls = paged.map((g) => ({
+      _id: g.latestId,
+      voterId: voterMap[g._id.toString()] || null,
+      voterObjectId: g._id,
+      status: g.latestStatus,
+      notes: g.latestNotes || "",
+      calledAt: g.latestCalledAt,
+      callCount: g.callCount,
+    }));
 
     res.json({ calls, total, page: parseInt(page), limit: parseInt(limit) });
   } catch (error) {
     console.error("Error fetching telecaller calls:", error);
     res.status(500).json({ error: "Failed to fetch calls" });
+  }
+});
+
+// GET /api/telecaller/admin/:telecaller/candidate/:voterId — full call history for a candidate
+router.get("/admin/:telecaller/candidate/:voterId", async (req, res) => {
+  try {
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ error: "Admin only" });
+    }
+
+    await connectDB();
+    const { telecaller, voterId } = req.params;
+
+    const history = await CallStatusModel.find({ telecaller, voterId })
+      .sort({ calledAt: -1 })
+      .lean();
+
+    const voter = await VoterModel.findById(voterId)
+      .select("name mobile email assemblyName partyName")
+      .lean();
+
+    res.json({ voter, history });
+  } catch (error) {
+    console.error("Error fetching candidate call history:", error);
+    res.status(500).json({ error: "Failed to fetch history" });
   }
 });
 
