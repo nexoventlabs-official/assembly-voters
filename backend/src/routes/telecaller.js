@@ -129,6 +129,34 @@ router.post("/call-status", async (req, res) => {
   }
 });
 
+// PATCH /api/telecaller/call-status/notes — update notes on the latest call status
+router.patch("/call-status/notes", async (req, res) => {
+  try {
+    await connectDB();
+    const telecaller = req.user.username;
+    const { voterId, notes } = req.body;
+
+    if (!voterId) {
+      return res.status(400).json({ error: "voterId is required" });
+    }
+
+    // Find the latest call status for this voter by this telecaller
+    const latest = await CallStatusModel.findOne({ voterId, telecaller }).sort({ calledAt: -1 });
+
+    if (!latest) {
+      return res.status(404).json({ error: "No call status found for this voter" });
+    }
+
+    latest.notes = notes || "";
+    await latest.save();
+
+    res.json({ success: true, callStatus: latest });
+  } catch (error) {
+    console.error("Error updating notes:", error);
+    res.status(500).json({ error: "Failed to update notes" });
+  }
+});
+
 // GET /api/telecaller/stats — dashboard stats for this telecaller
 router.get("/stats", async (req, res) => {
   try {

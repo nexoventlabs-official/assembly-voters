@@ -263,6 +263,34 @@ export default function TelecallerCandidatesPage() {
     window.open(`https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(email)}`, "_blank");
   };
 
+  const handleSaveNotes = async (candidateId: string) => {
+    const candidate = candidates.find((c) => c._id === candidateId);
+    if (!candidate?.callStatus) return; // no call status yet, notes will be sent with next status change
+    const currentNotes = inlineNotes[candidateId];
+    if (currentNotes === undefined) return; // not edited
+    if (currentNotes === (candidate.callStatus.notes || "")) return; // no change
+    setSavingId(candidateId);
+    try {
+      const res = await apiFetch("/api/telecaller/call-status/notes", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ voterId: candidateId, notes: currentNotes }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setCandidates((prev) =>
+          prev.map((c) =>
+            c._id === candidateId ? { ...c, callStatus: data.callStatus } : c
+          )
+        );
+      }
+    } catch {
+      console.error("Failed to save notes");
+    } finally {
+      setSavingId(null);
+    }
+  };
+
   const handleInlineStatus = async (candidateId: string, status: string) => {
     setSavingId(candidateId);
     try {
@@ -494,6 +522,8 @@ export default function TelecallerCandidatesPage() {
                       placeholder="Add note..."
                       value={inlineNotes[c._id] ?? c.callStatus?.notes ?? ""}
                       onChange={(e) => setInlineNotes((prev) => ({ ...prev, [c._id]: e.target.value }))}
+                      onBlur={() => handleSaveNotes(c._id)}
+                      onKeyDown={(e) => { if (e.key === "Enter") { e.currentTarget.blur(); } }}
                       className="text-xs w-full min-w-[120px] max-w-[200px] rounded-lg border border-slate-200 px-2.5 py-1.5 text-slate-600 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-300"
                     />
                   </td>
