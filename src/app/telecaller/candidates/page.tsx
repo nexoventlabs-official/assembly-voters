@@ -30,6 +30,7 @@ interface Candidate {
     notes: string;
     calledAt: string;
   } | null;
+  calledBy: string[];
 }
 
 const callStatusOptions = [
@@ -254,10 +255,15 @@ export default function TelecallerCandidatesPage() {
       });
       const data = await res.json();
       if (data.success) {
+        const tcName = data.callStatus?.telecaller || "";
         setCandidates((prev) =>
           prev.map((c) =>
             c._id === candidateId
-              ? { ...c, callStatus: data.callStatus }
+              ? {
+                  ...c,
+                  callStatus: data.callStatus,
+                  calledBy: c.calledBy?.includes(tcName) ? c.calledBy : [...(c.calledBy || []), tcName],
+                }
               : c
           )
         );
@@ -415,7 +421,21 @@ export default function TelecallerCandidatesPage() {
                   className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors"
                 >
                   <td className="py-3 px-4">
-                    <p className="text-sm font-medium text-slate-800">{c.name}</p>
+                    <p className="text-sm font-medium text-slate-800">
+                      {c.name}
+                      {c.calledBy && c.calledBy.length > 0 && c.calledBy.map((tc) => {
+                        const num = tc.replace(/\D/g, "");
+                        return (
+                          <span
+                            key={tc}
+                            className="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-100 text-indigo-700 border border-indigo-200"
+                            title={`Called by ${tc}`}
+                          >
+                            T{num}
+                          </span>
+                        );
+                      })}
+                    </p>
                     <p className="text-[11px] text-slate-400">{c.email || "—"}</p>
                   </td>
                   <td className="py-3 px-4 text-xs text-slate-600">{c.assemblyName}</td>

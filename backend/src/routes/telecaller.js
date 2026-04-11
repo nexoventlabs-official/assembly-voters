@@ -66,10 +66,25 @@ router.get("/candidates", async (req, res) => {
       if (!statusMap[key]) statusMap[key] = cs;
     }
 
+    // Get all telecallers who have called these voters (for tags like T1, T2)
+    const allCallStatuses = await CallStatusModel.find({
+      voterId: { $in: voterIds },
+    })
+      .sort({ calledAt: -1 })
+      .lean();
+
+    const calledByMap = {};
+    for (const cs of allCallStatuses) {
+      const key = cs.voterId.toString();
+      if (!calledByMap[key]) calledByMap[key] = new Set();
+      calledByMap[key].add(cs.telecaller);
+    }
+
     // Filter by call status if requested
     let result = voters.map((v) => ({
       ...v,
       callStatus: statusMap[v._id.toString()] || null,
+      calledBy: calledByMap[v._id.toString()] ? Array.from(calledByMap[v._id.toString()]) : [],
     }));
 
     if (callStatus) {
