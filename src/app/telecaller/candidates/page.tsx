@@ -151,16 +151,16 @@ export default function TelecallerCandidatesPage() {
   const filtered = useMemo(() => {
     let result = candidates;
 
-    // Filter by alliance
+    // Filter by alliance (exact match, case-insensitive)
     if (allianceParties === "others") {
       result = result.filter((c) => {
-        const pLower = c.partyName.toLowerCase();
-        return !ALL_ALLIANCE_PARTIES.some((ap) => pLower.includes(ap) || ap.includes(pLower));
+        const pLower = c.partyName.toLowerCase().trim();
+        return !ALL_ALLIANCE_PARTIES.some((ap) => pLower === ap);
       });
     } else if (allianceParties) {
       result = result.filter((c) => {
-        const pLower = c.partyName.toLowerCase();
-        return allianceParties.some((ap) => pLower.includes(ap) || ap.includes(pLower));
+        const pLower = c.partyName.toLowerCase().trim();
+        return allianceParties.some((ap) => pLower === ap);
       });
     }
 
