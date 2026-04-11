@@ -213,16 +213,16 @@ export default function TelecallerCandidatesPage() {
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paginatedCandidates = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
-  // Parties filtered by alliance for dropdown
+  // Parties filtered by alliance for dropdown (exact match)
   const filteredParties = useMemo(() => {
     if (!allianceParties) return parties;
     if (allianceParties === "others") {
       return parties.filter((p) =>
-        !ALL_ALLIANCE_PARTIES.some((ap) => p.toLowerCase().includes(ap) || ap.includes(p.toLowerCase()))
+        !ALL_ALLIANCE_PARTIES.some((ap) => p.toLowerCase().trim() === ap)
       );
     }
     return parties.filter((p) =>
-      allianceParties.some((ap) => p.toLowerCase().includes(ap))
+      allianceParties.some((ap) => p.toLowerCase().trim() === ap)
     );
   }, [parties, allianceParties]);
 
