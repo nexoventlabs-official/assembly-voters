@@ -233,9 +233,9 @@ export default function TelecallerCandidatesPage() {
 
   const doWhatsApp = (mobile: string) => {
     const cleaned = mobile.replace(/[^0-9]/g, "");
-    const withCountry = cleaned.startsWith("91") ? cleaned : `91${cleaned}`;
-    const search = encodeURIComponent(JSON.stringify({ searchOptionType: 3, searchTimeRange: 4, searchText: withCountry }));
-    window.open(`https://live.wati.io/301788/teamInbox?search=${search}`, "_blank");
+    const search = encodeURIComponent(JSON.stringify({ searchString: cleaned, searchTimeRange: 4 }));
+    const filter = encodeURIComponent(JSON.stringify({ channelType: 0, filterType: 0, filterId: 0 }));
+    window.open(`https://live.wati.io/301788/teamInbox?filter=${filter}&search=${search}`, "_blank");
   };
 
   const doCall = (mobile: string) => {
