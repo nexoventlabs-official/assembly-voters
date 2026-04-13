@@ -261,6 +261,55 @@ router.get("/stats", async (req, res) => {
   }
 });
 
+// GET /api/telecaller/my-calls — all deduplicated call logs for the current telecaller (for download)
+router.get("/my-calls", async (req, res) => {
+  try {
+    await connectDB();
+    const telecaller = req.user.username;
+
+    const pipeline = [
+      { $match: { telecaller } },
+      { $sort: { calledAt: -1 } },
+      {
+        $group: {
+          _id: "$voterId",
+          latestId: { $first: "$_id" },
+          latestStatus: { $first: "$status" },
+          latestNotes: { $first: "$notes" },
+          latestCalledAt: { $first: "$calledAt" },
+          latestSnapshot: { $first: "$voterSnapshot" },
+          callCount: { $sum: 1 },
+        },
+      },
+      { $sort: { latestCalledAt: -1 } },
+    ];
+
+    const allGrouped = await CallStatusModel.aggregate(pipeline);
+
+    // Populate voter info
+    const voterIds = allGrouped.map((g) => g._id);
+    const voters = await VoterModel.find({ _id: { $in: voterIds } })
+      .select("name mobile email assemblyName partyName")
+      .lean();
+    const voterMap = {};
+    voters.forEach((v) => { voterMap[v._id.toString()] = v; });
+
+    const calls = allGrouped.map((g) => ({
+      _id: g.latestId,
+      voterId: voterMap[g._id.toString()] || g.latestSnapshot || null,
+      status: g.latestStatus,
+      notes: g.latestNotes || "",
+      calledAt: g.latestCalledAt,
+      callCount: g.callCount,
+    }));
+
+    res.json({ calls, total: calls.length });
+  } catch (error) {
+    console.error("Error fetching my calls:", error);
+    res.status(500).json({ error: "Failed to fetch calls" });
+  }
+});
+
 // GET /api/telecaller/call-history/:voterId — call history for a candidate
 router.get("/call-history/:voterId", async (req, res) => {
   try {
