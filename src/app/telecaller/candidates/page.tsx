@@ -220,10 +220,10 @@ export default function TelecallerCandidatesPage() {
 
   // Pagination
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  // Clamp page if data changed and saved page exceeds total
+  // Clamp page only after data has loaded
   useEffect(() => {
-    if (currentPage > totalPages) setCurrentPage(totalPages);
-  }, [totalPages, currentPage]);
+    if (candidates.length > 0 && currentPage > totalPages) setCurrentPage(totalPages);
+  }, [totalPages, currentPage, candidates.length]);
   const paginatedCandidates = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   // Parties filtered by alliance for dropdown (exact match)
