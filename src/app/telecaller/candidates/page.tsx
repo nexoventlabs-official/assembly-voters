@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo, useRef } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { apiFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import WhatsAppIcon from "@/components/WhatsAppIcon";
@@ -217,21 +217,6 @@ export default function TelecallerCandidatesPage() {
     localStorage.setItem("telecaller_candidates_page", String(currentPage));
   }, [currentPage]);
 
-  // Track when initial load is done so we don't reset page on mount
-  const filtersReady = useRef(false);
-  useEffect(() => {
-    if (!loading && candidates.length >= 0) {
-      // Mark ready after first data load completes (alliance lock already applied by then)
-      const t = setTimeout(() => { filtersReady.current = true; }, 100);
-      return () => clearTimeout(t);
-    }
-  }, [loading, candidates.length]);
-
-  // Reset page when filters change (only after initial load)
-  useEffect(() => {
-    if (!filtersReady.current) return;
-    setCurrentPage(1);
-  }, [selectedAlliance, selectedAssembly, selectedParty, selectedCallStatus, searchQuery]);
 
   // Pagination
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
@@ -383,7 +368,7 @@ export default function TelecallerCandidatesPage() {
             onClick={() => {
               const next = !showAllianceFilter;
               setShowAllianceFilter(next);
-              if (!next) { setSelectedAlliance(""); setSelectedParty(""); }
+              if (!next) { setSelectedAlliance(""); setSelectedParty(""); setCurrentPage(1); }
             }}
             className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors border ${
               showAllianceFilter
@@ -402,7 +387,7 @@ export default function TelecallerCandidatesPage() {
             <Users size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
             <select
               value={selectedAlliance}
-              onChange={(e) => { if (!lockedAlliance) { setSelectedAlliance(e.target.value); setSelectedParty(""); } }}
+              onChange={(e) => { if (!lockedAlliance) { setSelectedAlliance(e.target.value); setSelectedParty(""); setCurrentPage(1); } }}
               disabled={!!lockedAlliance}
               className={`appearance-none input-field pl-10 pr-9 py-2.5 text-sm font-medium min-w-[280px] ${lockedAlliance ? "opacity-70 cursor-not-allowed bg-slate-50" : ""}`}
             >
@@ -420,7 +405,7 @@ export default function TelecallerCandidatesPage() {
           <Filter size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
           <select
             value={selectedAssembly}
-            onChange={(e) => setSelectedAssembly(e.target.value)}
+            onChange={(e) => { setSelectedAssembly(e.target.value); setCurrentPage(1); }}
             className="appearance-none input-field pl-10 pr-9 py-2.5 text-sm font-medium min-w-[200px]"
           >
             <option value="">All Assemblies</option>
@@ -436,7 +421,7 @@ export default function TelecallerCandidatesPage() {
           <Filter size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
           <select
             value={selectedParty}
-            onChange={(e) => setSelectedParty(e.target.value)}
+            onChange={(e) => { setSelectedParty(e.target.value); setCurrentPage(1); }}
             className="appearance-none input-field pl-10 pr-9 py-2.5 text-sm font-medium min-w-[180px]"
           >
             <option value="">{selectedAlliance ? "All Alliance Parties" : "All Parties"}</option>
@@ -452,7 +437,7 @@ export default function TelecallerCandidatesPage() {
           <Phone size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
           <select
             value={selectedCallStatus}
-            onChange={(e) => setSelectedCallStatus(e.target.value)}
+            onChange={(e) => { setSelectedCallStatus(e.target.value); setCurrentPage(1); }}
             className="appearance-none input-field pl-10 pr-9 py-2.5 text-sm font-medium min-w-[160px]"
           >
             {statusFilterOptions.map((o) => (
@@ -469,7 +454,7 @@ export default function TelecallerCandidatesPage() {
             type="text"
             placeholder="Search by name, mobile, party..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
             className="input-field w-full pl-10 pr-4 py-2.5 text-sm"
           />
         </div>
