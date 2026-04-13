@@ -217,13 +217,19 @@ export default function TelecallerCandidatesPage() {
     localStorage.setItem("telecaller_candidates_page", String(currentPage));
   }, [currentPage]);
 
-  // Reset page when filters change (skip initial mount)
-  const isInitialMount = useRef(true);
+  // Track when initial load is done so we don't reset page on mount
+  const filtersReady = useRef(false);
   useEffect(() => {
-    if (isInitialMount.current) {
-      isInitialMount.current = false;
-      return;
+    if (!loading && candidates.length >= 0) {
+      // Mark ready after first data load completes (alliance lock already applied by then)
+      const t = setTimeout(() => { filtersReady.current = true; }, 100);
+      return () => clearTimeout(t);
     }
+  }, [loading, candidates.length]);
+
+  // Reset page when filters change (only after initial load)
+  useEffect(() => {
+    if (!filtersReady.current) return;
     setCurrentPage(1);
   }, [selectedAlliance, selectedAssembly, selectedParty, selectedCallStatus, searchQuery]);
 
