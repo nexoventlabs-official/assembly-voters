@@ -121,14 +121,19 @@ export default function TelecallerCandidatesPage() {
   const [savingId, setSavingId] = useState<string | null>(null);
   const [inlineNotes, setInlineNotes] = useState<Record<string, string>>({});
   const [phonePicker, setPhonePicker] = useState<{ numbers: string[]; action: "whatsapp" | "call"; x: number; y: number } | null>(null);
-  const [currentPage, setCurrentPage] = useState(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("telecaller_candidates_page");
-      return saved ? parseInt(saved, 10) || 1 : 1;
-    }
-    return 1;
-  });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageRestored, setPageRestored] = useState(false);
   const PAGE_SIZE = 50;
+
+  // Restore saved page from localStorage after mount
+  useEffect(() => {
+    const saved = localStorage.getItem("telecaller_candidates_page");
+    if (saved) {
+      const p = parseInt(saved, 10);
+      if (p > 1) setCurrentPage(p);
+    }
+    setPageRestored(true);
+  }, []);
 
   // Lock alliance filter for assigned telecallers
   useEffect(() => {
@@ -212,18 +217,18 @@ export default function TelecallerCandidatesPage() {
     return result;
   }, [candidates, searchQuery, allianceParties, selectedParty]);
 
-  // Persist page to localStorage
+  // Persist page to localStorage (only after restored)
   useEffect(() => {
-    localStorage.setItem("telecaller_candidates_page", String(currentPage));
-  }, [currentPage]);
+    if (pageRestored) localStorage.setItem("telecaller_candidates_page", String(currentPage));
+  }, [currentPage, pageRestored]);
 
 
   // Pagination
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  // Clamp page only after data has loaded
+  // Clamp page only after data has loaded and page restored
   useEffect(() => {
-    if (candidates.length > 0 && currentPage > totalPages) setCurrentPage(totalPages);
-  }, [totalPages, currentPage, candidates.length]);
+    if (pageRestored && candidates.length > 0 && currentPage > totalPages) setCurrentPage(totalPages);
+  }, [totalPages, currentPage, candidates.length, pageRestored]);
   const paginatedCandidates = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   // Parties filtered by alliance for dropdown (exact match)
