@@ -33,6 +33,13 @@ const VoterModel = mongoose.models.Voter || mongoose.model("Voter", voterSchema)
 const callStatusSchema = new mongoose.Schema(
   {
     voterId: { type: mongoose.Schema.Types.ObjectId, ref: "Voter", required: true, index: true },
+    voterSnapshot: {
+      name: String,
+      mobile: String,
+      email: String,
+      assemblyName: String,
+      partyName: String,
+    },
     telecaller: { type: String, required: true, index: true },
     status: {
       type: String,

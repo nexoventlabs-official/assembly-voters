@@ -113,8 +113,18 @@ router.post("/call-status", async (req, res) => {
       return res.status(400).json({ error: "voterId and status are required" });
     }
 
+    // Fetch voter for snapshot
+    const voter = await VoterModel.findById(voterId).select("name mobile email assemblyName partyName").lean();
+
     const callStatus = new CallStatusModel({
       voterId,
+      voterSnapshot: voter ? {
+        name: voter.name,
+        mobile: voter.mobile,
+        email: voter.email,
+        assemblyName: voter.assemblyName,
+        partyName: voter.partyName,
+      } : undefined,
       telecaller,
       status,
       notes: notes || "",
@@ -392,6 +402,7 @@ router.get("/admin/:telecaller/calls", async (req, res) => {
           latestStatus: { $first: "$status" },
           latestNotes: { $first: "$notes" },
           latestCalledAt: { $first: "$calledAt" },
+          latestSnapshot: { $first: "$voterSnapshot" },
           callCount: { $sum: 1 },
         },
       },
@@ -412,7 +423,7 @@ router.get("/admin/:telecaller/calls", async (req, res) => {
 
     const calls = paged.map((g) => ({
       _id: g.latestId,
-      voterId: voterMap[g._id.toString()] || null,
+      voterId: voterMap[g._id.toString()] || g.latestSnapshot || null,
       voterObjectId: g._id,
       status: g.latestStatus,
       notes: g.latestNotes || "",

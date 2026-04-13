@@ -1,4 +1,4 @@
-const { connectDB, VoterModel } = require("./mongodb");
+const { connectDB, VoterModel, CallStatusModel } = require("./mongodb");
 const { getAllVoters } = require("./google-sheets");
 
 // Capitalize first letter of each word to normalize party/assembly names
@@ -61,13 +61,24 @@ async function runSync() {
       await VoterModel.bulkWrite(ops, { ordered: false });
     }
 
-    // Remove voters no longer in the sheet
+    // Remove voters no longer in the sheet, but protect those with call statuses
     const allVotersInDb = await VoterModel.find({}, { sheetName: 1, row: 1 }).lean();
-    const toDelete = allVotersInDb
+    const candidateToDelete = allVotersInDb
       .filter((v) => !seenKeys.has(`${v.sheetName}::${v.row}`))
       .map((v) => v._id);
-    if (toDelete.length > 0) {
-      await VoterModel.deleteMany({ _id: { $in: toDelete } });
+    if (candidateToDelete.length > 0) {
+      // Find which of these have call statuses — never delete those
+      const votersWithCalls = await CallStatusModel.distinct("voterId", {
+        voterId: { $in: candidateToDelete },
+      });
+      const protectedIds = new Set(votersWithCalls.map((id) => id.toString()));
+      const safeToDelete = candidateToDelete.filter((id) => !protectedIds.has(id.toString()));
+      if (safeToDelete.length > 0) {
+        await VoterModel.deleteMany({ _id: { $in: safeToDelete } });
+      }
+      if (protectedIds.size > 0) {
+        console.log(`[Auto-Sync] Protected ${protectedIds.size} voters with call statuses from deletion`);
+      }
     }
 
     lastSyncTime = new Date();
