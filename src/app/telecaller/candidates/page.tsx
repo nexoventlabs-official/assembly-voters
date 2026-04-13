@@ -121,7 +121,13 @@ export default function TelecallerCandidatesPage() {
   const [savingId, setSavingId] = useState<string | null>(null);
   const [inlineNotes, setInlineNotes] = useState<Record<string, string>>({});
   const [phonePicker, setPhonePicker] = useState<{ numbers: string[]; action: "whatsapp" | "call"; x: number; y: number } | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("telecaller_candidates_page");
+      return saved ? parseInt(saved, 10) || 1 : 1;
+    }
+    return 1;
+  });
   const PAGE_SIZE = 50;
 
   // Lock alliance filter for assigned telecallers
@@ -206,6 +212,11 @@ export default function TelecallerCandidatesPage() {
     return result;
   }, [candidates, searchQuery, allianceParties, selectedParty]);
 
+  // Persist page to localStorage
+  useEffect(() => {
+    localStorage.setItem("telecaller_candidates_page", String(currentPage));
+  }, [currentPage]);
+
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
@@ -213,6 +224,10 @@ export default function TelecallerCandidatesPage() {
 
   // Pagination
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  // Clamp page if data changed and saved page exceeds total
+  useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(totalPages);
+  }, [totalPages, currentPage]);
   const paginatedCandidates = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   // Parties filtered by alliance for dropdown (exact match)
