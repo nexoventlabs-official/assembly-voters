@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { apiFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import WhatsAppIcon from "@/components/WhatsAppIcon";
@@ -217,8 +217,13 @@ export default function TelecallerCandidatesPage() {
     localStorage.setItem("telecaller_candidates_page", String(currentPage));
   }, [currentPage]);
 
-  // Reset page when filters change
+  // Reset page when filters change (skip initial mount)
+  const isInitialMount = useRef(true);
   useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
     setCurrentPage(1);
   }, [selectedAlliance, selectedAssembly, selectedParty, selectedCallStatus, searchQuery]);
 
