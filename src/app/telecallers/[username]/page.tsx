@@ -287,6 +287,24 @@ export default function TelecallerDetailPage() {
   const generateCandidateReport = (candidates: CandidateReport[], reportTitle: string) => {
     const now = new Date().toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
 
+    // Compute stats from the sliced candidates
+    const assigned = candidates.length;
+    const called = candidates.filter((c) => c.status !== null).length;
+    const notCalled = assigned - called;
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const todayCalls = candidates.filter((c) => c.calledAt && new Date(c.calledAt) >= todayStart).length;
+
+    // Status breakdown counts
+    const statusCounts: Record<string, number> = {};
+    statusConfig.forEach((s) => { statusCounts[s.key] = 0; });
+    candidates.forEach((c) => {
+      if (c.status && statusCounts[c.status] !== undefined) statusCounts[c.status]++;
+    });
+
+    const statusHeaders = statusConfig.map((s) => `<th style="text-align:center;padding:6px 10px;font-size:10px;color:#666;font-weight:600;">${s.label}</th>`).join("");
+    const statusRows = statusConfig.map((s) => `<td style="text-align:center;padding:6px 10px;font-weight:700;color:#333;">${statusCounts[s.key]}</td>`).join("");
+
     const callRows = candidates
       .map((c) => {
         const sl = c.status ? (statusLabelMap[c.status] || { label: c.status }) : { label: "Not Called" };
@@ -312,10 +330,17 @@ export default function TelecallerDetailPage() {
     h1 { font-size: 22px; margin: 0; }
     .subtitle { color: #64748b; font-size: 12px; margin-top: 4px; }
     .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; border-bottom: 2px solid #e2e8f0; padding-bottom: 15px; }
+    .stats-grid { display: flex; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
+    .stat-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 16px; text-align: center; min-width: 90px; }
+    .stat-value { font-size: 22px; font-weight: 800; color: #1e293b; }
+    .stat-label { font-size: 10px; color: #64748b; font-weight: 600; margin-top: 2px; }
     table { width: 100%; border-collapse: collapse; font-size: 11px; }
     thead th { background: #f1f5f9; padding: 8px 10px; text-align: left; font-size: 10px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid #e2e8f0; }
     tbody tr { border-bottom: 1px solid #f1f5f9; }
     tbody tr:nth-child(even) { background: #fafbfc; }
+    .status-table { margin-bottom: 20px; }
+    .status-table table { width: auto; }
+    .status-table td, .status-table th { border: 1px solid #e2e8f0; }
     @media print { body { padding: 0; } }
   </style>
 </head>
@@ -330,6 +355,20 @@ export default function TelecallerDetailPage() {
       <div style="font-size:10px;color:#64748b;font-weight:600;">Candidates</div>
     </div>
   </div>
+
+  <div class="stats-grid">
+    <div class="stat-card"><div class="stat-value">${assigned}</div><div class="stat-label">Assigned</div></div>
+    <div class="stat-card"><div class="stat-value">${called}</div><div class="stat-label">Called</div></div>
+    <div class="stat-card"><div class="stat-value">${notCalled}</div><div class="stat-label">Not Called</div></div>
+    <div class="stat-card"><div class="stat-value">${todayCalls}</div><div class="stat-label">Today</div></div>
+  </div>
+
+  <div class="status-table">
+    <h3 style="font-size:13px;margin-bottom:8px;">Status Breakdown</h3>
+    <table><thead><tr>${statusHeaders}</tr></thead><tbody><tr>${statusRows}</tr></tbody></table>
+  </div>
+
+  <h3 style="font-size:13px;margin-bottom:8px;">Call Logs (${candidates.length} candidates)</h3>
   <table>
     <thead>
       <tr>
