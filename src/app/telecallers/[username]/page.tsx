@@ -263,12 +263,98 @@ export default function TelecallerDetailPage() {
     generateReport(allCalls, displayName);
   };
 
+  interface CandidateReport {
+    name: string;
+    mobile: string;
+    email: string;
+    assemblyName: string;
+    partyName: string;
+    status: string | null;
+    notes: string;
+    calledAt: string | null;
+  }
+
+  const fetchCandidatesReport = async (): Promise<CandidateReport[]> => {
+    try {
+      const res = await apiFetch(`/api/telecaller/admin/${username}/candidates-report`);
+      const data = await res.json();
+      return data.candidates || [];
+    } catch {
+      return [];
+    }
+  };
+
+  const generateCandidateReport = (candidates: CandidateReport[], reportTitle: string) => {
+    const now = new Date().toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+
+    const callRows = candidates
+      .map((c) => {
+        const sl = c.status ? (statusLabelMap[c.status] || { label: c.status }) : { label: "Not Called" };
+        return `<tr>
+            <td style="padding:6px 10px;font-size:11px;">${c.name || "\u2014"}</td>
+            <td style="padding:6px 10px;font-size:11px;">${c.assemblyName || "\u2014"}</td>
+            <td style="padding:6px 10px;font-size:11px;">${c.partyName || "\u2014"}</td>
+            <td style="padding:6px 10px;font-size:11px;font-family:monospace;">${c.mobile || "\u2014"}</td>
+            <td style="padding:6px 10px;font-size:11px;font-weight:600;">${sl.label}</td>
+            <td style="padding:6px 10px;font-size:11px;">${c.notes || "\u2014"}</td>
+            <td style="padding:6px 10px;font-size:11px;white-space:nowrap;">${c.calledAt ? new Date(c.calledAt).toLocaleString("en-IN", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) : "\u2014"}</td>
+          </tr>`;
+      })
+      .join("");
+
+    const html = `<!DOCTYPE html>
+<html>
+<head>
+  <title>${reportTitle} Report</title>
+  <style>
+    @page { size: landscape; margin: 15mm; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #1e293b; margin: 0; padding: 20px; }
+    h1 { font-size: 22px; margin: 0; }
+    .subtitle { color: #64748b; font-size: 12px; margin-top: 4px; }
+    .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; border-bottom: 2px solid #e2e8f0; padding-bottom: 15px; }
+    table { width: 100%; border-collapse: collapse; font-size: 11px; }
+    thead th { background: #f1f5f9; padding: 8px 10px; text-align: left; font-size: 10px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid #e2e8f0; }
+    tbody tr { border-bottom: 1px solid #f1f5f9; }
+    tbody tr:nth-child(even) { background: #fafbfc; }
+    @media print { body { padding: 0; } }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <h1>${reportTitle} \u2014 Call Report</h1>
+      <p class="subtitle">Generated on ${now} &bull; Sorted by Assembly Name</p>
+    </div>
+    <div style="text-align:right">
+      <div style="font-size:22px;font-weight:800;color:#1e293b;">${candidates.length}</div>
+      <div style="font-size:10px;color:#64748b;font-weight:600;">Candidates</div>
+    </div>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>Candidate</th><th>Assembly</th><th>Party</th><th>Mobile</th><th>Status</th><th>Notes</th><th>Last Called</th>
+      </tr>
+    </thead>
+    <tbody>${callRows}</tbody>
+  </table>
+  <script>window.onload = function() { window.print(); }<\/script>
+</body>
+</html>`;
+
+    const printWindow = window.open("", "_blank");
+    if (printWindow) {
+      printWindow.document.write(html);
+      printWindow.document.close();
+    }
+  };
+
   const handleCustomDownload = async (dl: { label: string; startPage: number; endPage: number }) => {
-    const allCalls = await fetchAllCalls();
+    const allCandidates = await fetchCandidatesReport();
     const start = (dl.startPage - 1) * PAGE_SIZE;
     const end = dl.endPage * PAGE_SIZE;
-    const sliced = allCalls.slice(start, end);
-    generateReport(sliced, dl.label);
+    const sliced = allCandidates.slice(start, end);
+    generateCandidateReport(sliced, dl.label);
   };
 
   const customDls = CUSTOM_DOWNLOADS[username] || null;

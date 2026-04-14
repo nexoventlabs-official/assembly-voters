@@ -487,6 +487,83 @@ router.get("/admin/:telecaller/calls", async (req, res) => {
   }
 });
 
+// GET /api/telecaller/admin/:telecaller/candidates-report — all candidates in candidates-page order (alliance-filtered, assembly-sorted) with call statuses
+router.get("/admin/:telecaller/candidates-report", async (req, res) => {
+  try {
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ error: "Admin only" });
+    }
+
+    await connectDB();
+    const { telecaller } = req.params;
+
+    const ALLIANCE_PARTIES_RPT = {
+      spa: ["dravida munnetra kazhagam", "indian national congress", "desiya murpokku dravida kazhagam", "viduthalai chiruthaigal katchi", "communist party of india (marxist)", "communist party of india", "marumalarchi dravida munnetra kazhagam"],
+      nda: ["all india anna dravida munnetra kazhagam", "bharatiya janata party", "pattali makkal katchi", "amma makkal munnettra kazagam"],
+      ntk: ["ntk", "naam tamilar katchi", "naam tamilar"],
+      tvk: ["tvk", "tamil vettri kazhagam", "tamilaga vettri kazhagam"],
+    };
+    const TC_ALLIANCE_RPT = {
+      Telecaller1: "spa",
+      Telecaller2: "nda",
+      Telecaller3: "ntk",
+      Telecaller4: "tvk",
+    };
+
+    // Build voter filter based on alliance
+    const voterFilter = {};
+    const allianceKey = TC_ALLIANCE_RPT[telecaller];
+    if (allianceKey && ALLIANCE_PARTIES_RPT[allianceKey]) {
+      const partyRegexes = ALLIANCE_PARTIES_RPT[allianceKey].map(
+        (p) => new RegExp(`^${p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i")
+      );
+      voterFilter.partyName = { $in: partyRegexes };
+    }
+
+    // Fetch all candidates sorted by assemblyName, name (same as candidates page)
+    const voters = await VoterModel.find(voterFilter)
+      .sort({ assemblyName: 1, name: 1 })
+      .select("name mobile email assemblyName partyName")
+      .lean();
+
+    // Get call statuses for these voters by this telecaller
+    const voterIds = voters.map((v) => v._id);
+    const callStatuses = await CallStatusModel.find({
+      voterId: { $in: voterIds },
+      telecaller,
+    })
+      .sort({ calledAt: -1 })
+      .lean();
+
+    // Map latest status per voter
+    const statusMap = {};
+    for (const cs of callStatuses) {
+      const key = cs.voterId.toString();
+      if (!statusMap[key]) statusMap[key] = cs;
+    }
+
+    const candidates = voters.map((v) => {
+      const cs = statusMap[v._id.toString()];
+      return {
+        _id: v._id,
+        name: v.name,
+        mobile: v.mobile,
+        email: v.email,
+        assemblyName: v.assemblyName,
+        partyName: v.partyName,
+        status: cs ? cs.status : null,
+        notes: cs ? cs.notes || "" : "",
+        calledAt: cs ? cs.calledAt : null,
+      };
+    });
+
+    res.json({ candidates, total: candidates.length });
+  } catch (error) {
+    console.error("Error fetching candidates report:", error);
+    res.status(500).json({ error: "Failed to fetch candidates report" });
+  }
+});
+
 // GET /api/telecaller/admin/:telecaller/candidate/:voterId — full call history for a candidate
 router.get("/admin/:telecaller/candidate/:voterId", async (req, res) => {
   try {
