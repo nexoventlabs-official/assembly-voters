@@ -451,6 +451,7 @@ router.get("/admin/:telecaller/calls", async (req, res) => {
           latestId: { $first: "$_id" },
           latestStatus: { $first: "$status" },
           latestNotes: { $first: "$notes" },
+          latestNotesUpdatedAt: { $first: "$notesUpdatedAt" },
           latestCalledAt: { $first: "$calledAt" },
           latestSnapshot: { $first: "$voterSnapshot" },
           callCount: { $sum: 1 },
@@ -477,6 +478,7 @@ router.get("/admin/:telecaller/calls", async (req, res) => {
       voterObjectId: g._id,
       status: g.latestStatus,
       notes: g.latestNotes || "",
+      notesUpdatedAt: g.latestNotesUpdatedAt || null,
       calledAt: g.latestCalledAt,
       callCount: g.callCount,
     }));
@@ -554,6 +556,7 @@ router.get("/admin/:telecaller/candidates-report", async (req, res) => {
         partyName: v.partyName,
         status: cs ? cs.status : null,
         notes: cs ? cs.notes || "" : "",
+        notesUpdatedAt: cs ? cs.notesUpdatedAt || null : null,
         calledAt: cs ? cs.calledAt : null,
       };
     });

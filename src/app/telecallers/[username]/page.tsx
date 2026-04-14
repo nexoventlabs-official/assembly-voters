@@ -30,6 +30,7 @@ interface CallLog {
   voterObjectId?: string;
   status: string;
   notes: string;
+  notesUpdatedAt?: string | null;
   calledAt: string;
   callCount?: number;
 }
@@ -183,6 +184,7 @@ export default function TelecallerDetailPage() {
       .map(
         (c) => {
           const sl = statusLabelMap[c.status] || { label: c.status };
+          const latestTime = c.notesUpdatedAt && new Date(c.notesUpdatedAt) > new Date(c.calledAt) ? c.notesUpdatedAt : c.calledAt;
           return `<tr>
             <td style="padding:6px 10px;font-size:11px;">${c.voterId?.name || "\u2014"}</td>
             <td style="padding:6px 10px;font-size:11px;">${c.voterId?.assemblyName || "\u2014"}</td>
@@ -190,7 +192,7 @@ export default function TelecallerDetailPage() {
             <td style="padding:6px 10px;font-size:11px;font-family:monospace;">${c.voterId?.mobile || "\u2014"}</td>
             <td style="padding:6px 10px;font-size:11px;font-weight:600;">${sl.label}</td>
             <td style="padding:6px 10px;font-size:11px;">${c.notes || "\u2014"}</td>
-            <td style="padding:6px 10px;font-size:11px;white-space:nowrap;">${new Date(c.calledAt).toLocaleString("en-IN", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</td>
+            <td style="padding:6px 10px;font-size:11px;white-space:nowrap;">${new Date(latestTime).toLocaleString("en-IN", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</td>
           </tr>`;
         }
       )
@@ -271,6 +273,7 @@ export default function TelecallerDetailPage() {
     partyName: string;
     status: string | null;
     notes: string;
+    notesUpdatedAt: string | null;
     calledAt: string | null;
   }
 
@@ -309,6 +312,7 @@ export default function TelecallerDetailPage() {
     const callRows = calledCandidates
       .map((c) => {
         const sl = statusLabelMap[c.status!] || { label: c.status };
+        const latestTime = c.notesUpdatedAt && c.calledAt && new Date(c.notesUpdatedAt) > new Date(c.calledAt) ? c.notesUpdatedAt : c.calledAt;
         return `<tr>
             <td style="padding:6px 10px;font-size:11px;">${c.name || "\u2014"}</td>
             <td style="padding:6px 10px;font-size:11px;">${c.assemblyName || "\u2014"}</td>
@@ -316,7 +320,7 @@ export default function TelecallerDetailPage() {
             <td style="padding:6px 10px;font-size:11px;font-family:monospace;">${c.mobile || "\u2014"}</td>
             <td style="padding:6px 10px;font-size:11px;font-weight:600;">${sl.label}</td>
             <td style="padding:6px 10px;font-size:11px;">${c.notes || "\u2014"}</td>
-            <td style="padding:6px 10px;font-size:11px;white-space:nowrap;">${c.calledAt ? new Date(c.calledAt).toLocaleString("en-IN", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) : "\u2014"}</td>
+            <td style="padding:6px 10px;font-size:11px;white-space:nowrap;">${latestTime ? new Date(latestTime).toLocaleString("en-IN", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) : "\u2014"}</td>
           </tr>`;
       })
       .join("");
