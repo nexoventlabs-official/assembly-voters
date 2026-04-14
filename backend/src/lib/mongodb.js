@@ -48,6 +48,7 @@ const callStatusSchema = new mongoose.Schema(
       index: true,
     },
     notes: { type: String, default: "" },
+    notesUpdatedAt: { type: Date, default: null },
     calledAt: { type: Date, default: Date.now },
   },
   { timestamps: true }

@@ -29,6 +29,7 @@ interface Candidate {
     _id: string;
     status: string;
     notes: string;
+    notesUpdatedAt: string | null;
     calledAt: string;
   } | null;
   calledBy: string[];
@@ -544,15 +545,22 @@ export default function TelecallerCandidatesPage() {
                     </div>
                   </td>
                   <td className="py-3 px-4">
-                    <input
-                      type="text"
-                      placeholder="Add note..."
-                      value={inlineNotes[c._id] ?? c.callStatus?.notes ?? ""}
-                      onChange={(e) => setInlineNotes((prev) => ({ ...prev, [c._id]: e.target.value }))}
-                      onBlur={() => handleSaveNotes(c._id)}
-                      onKeyDown={(e) => { if (e.key === "Enter") { e.currentTarget.blur(); } }}
-                      className="text-xs w-full min-w-[120px] max-w-[200px] rounded-lg border border-slate-200 px-2.5 py-1.5 text-slate-600 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-300"
-                    />
+                    <div className="flex flex-col gap-0.5">
+                      <input
+                        type="text"
+                        placeholder="Add note..."
+                        value={inlineNotes[c._id] ?? c.callStatus?.notes ?? ""}
+                        onChange={(e) => setInlineNotes((prev) => ({ ...prev, [c._id]: e.target.value }))}
+                        onBlur={() => handleSaveNotes(c._id)}
+                        onKeyDown={(e) => { if (e.key === "Enter") { e.currentTarget.blur(); } }}
+                        className="text-xs w-full min-w-[120px] max-w-[200px] rounded-lg border border-slate-200 px-2.5 py-1.5 text-slate-600 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-300"
+                      />
+                      {c.callStatus?.notesUpdatedAt && (
+                        <span className="text-[9px] text-slate-400">
+                          {new Date(c.callStatus.notesUpdatedAt).toLocaleString("en-IN", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="py-3 px-4">
                     <div className="flex items-center justify-center gap-1.5">

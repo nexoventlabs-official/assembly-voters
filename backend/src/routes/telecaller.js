@@ -158,6 +158,7 @@ router.patch("/call-status/notes", async (req, res) => {
     }
 
     latest.notes = notes || "";
+    latest.notesUpdatedAt = new Date();
     await latest.save();
 
     res.json({ success: true, callStatus: latest });
