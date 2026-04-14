@@ -74,6 +74,21 @@ statusConfig.forEach((s) => {
   statusLabelMap[s.key] = { label: s.label, color: s.color, bg: s.bg };
 });
 
+// Custom download splits for specific telecallers (page ranges are 1-indexed, PAGE_SIZE=50)
+const CUSTOM_DOWNLOADS: Record<string, { label: string; startPage: number; endPage: number }[]> = {
+  Telecaller2: [
+    { label: "Telecaller2", startPage: 1, endPage: 3 },
+    { label: "Telecaller2(Mahima)", startPage: 4, endPage: 4 },
+    { label: "Telecaller2(Nunciya)", startPage: 5, endPage: 5 },
+  ],
+  Telecaller4: [
+    { label: "Telecaller4", startPage: 1, endPage: 4 },
+    { label: "Telecaller4(Tamilarasi)", startPage: 5, endPage: 5 },
+    { label: "Telecaller4(Nunciya)", startPage: 6, endPage: 6 },
+    { label: "Telecaller4(Mahimaa)", startPage: 7, endPage: 7 },
+  ],
+};
+
 export default function TelecallerDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -142,17 +157,18 @@ export default function TelecallerDetailPage() {
 
   const totalPages = Math.max(1, Math.ceil(totalCalls / PAGE_SIZE));
 
-  const handleDownloadReport = async () => {
-    // Fetch all call logs (not just current page)
-    let allCalls = calls;
-    if (totalCalls > PAGE_SIZE) {
-      try {
-        const res = await apiFetch(`/api/telecaller/admin/${username}/calls?page=1&limit=9999`);
-        const data = await res.json();
-        allCalls = data.calls || [];
-      } catch { /* use current page calls as fallback */ }
+  // Fetch all calls once (cached)
+  const fetchAllCalls = async (): Promise<CallLog[]> => {
+    try {
+      const res = await apiFetch(`/api/telecaller/admin/${username}/calls?page=1&limit=9999`);
+      const data = await res.json();
+      return data.calls || [];
+    } catch {
+      return calls;
     }
+  };
 
+  const generateReport = (reportCalls: CallLog[], reportTitle: string) => {
     const now = new Date().toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
 
     const statusRows = statusConfig
@@ -163,17 +179,17 @@ export default function TelecallerDetailPage() {
       .join("");
     const statusHeaders = statusConfig.map((s) => `<th style="text-align:center;padding:6px 10px;font-size:10px;color:#666;font-weight:600;">${s.label}</th>`).join("");
 
-    const callRows = allCalls
+    const callRows = reportCalls
       .map(
         (c) => {
           const sl = statusLabelMap[c.status] || { label: c.status };
           return `<tr>
-            <td style="padding:6px 10px;font-size:11px;">${c.voterId?.name || "—"}</td>
-            <td style="padding:6px 10px;font-size:11px;">${c.voterId?.assemblyName || "—"}</td>
-            <td style="padding:6px 10px;font-size:11px;">${c.voterId?.partyName || "—"}</td>
-            <td style="padding:6px 10px;font-size:11px;font-family:monospace;">${c.voterId?.mobile || "—"}</td>
+            <td style="padding:6px 10px;font-size:11px;">${c.voterId?.name || "\u2014"}</td>
+            <td style="padding:6px 10px;font-size:11px;">${c.voterId?.assemblyName || "\u2014"}</td>
+            <td style="padding:6px 10px;font-size:11px;">${c.voterId?.partyName || "\u2014"}</td>
+            <td style="padding:6px 10px;font-size:11px;font-family:monospace;">${c.voterId?.mobile || "\u2014"}</td>
             <td style="padding:6px 10px;font-size:11px;font-weight:600;">${sl.label}</td>
-            <td style="padding:6px 10px;font-size:11px;">${c.notes || "—"}</td>
+            <td style="padding:6px 10px;font-size:11px;">${c.notes || "\u2014"}</td>
             <td style="padding:6px 10px;font-size:11px;white-space:nowrap;">${new Date(c.calledAt).toLocaleString("en-IN", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</td>
           </tr>`;
         }
@@ -183,7 +199,7 @@ export default function TelecallerDetailPage() {
     const html = `<!DOCTYPE html>
 <html>
 <head>
-  <title>${displayName} Report</title>
+  <title>${reportTitle} Report</title>
   <style>
     @page { size: landscape; margin: 15mm; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #1e293b; margin: 0; padding: 20px; }
@@ -207,20 +223,13 @@ export default function TelecallerDetailPage() {
 <body>
   <div class="header">
     <div>
-      <h1>${displayName} — Call Report</h1>
+      <h1>${reportTitle} \u2014 Call Report</h1>
       <p class="subtitle">Generated on ${now}</p>
     </div>
     <div style="text-align:right">
-      <div class="stat-value">${stats?.totalCalled || 0}</div>
-      <div class="stat-label">Total Unique Candidates Called</div>
+      <div class="stat-value">${reportCalls.length}</div>
+      <div class="stat-label">Candidates in Report</div>
     </div>
-  </div>
-
-  <div class="stats-grid">
-    <div class="stat-card"><div class="stat-value">${stats?.totalCalled || 0}</div><div class="stat-label">Total Calls</div></div>
-    <div class="stat-card"><div class="stat-value">${stats?.todayCalls || 0}</div><div class="stat-label">Today's Calls</div></div>
-    <div class="stat-card"><div class="stat-value">${stats?.interested || 0}</div><div class="stat-label">Interested</div></div>
-    <div class="stat-card"><div class="stat-value">${totalCalls}</div><div class="stat-label">Log Entries</div></div>
   </div>
 
   <div class="status-table">
@@ -228,7 +237,7 @@ export default function TelecallerDetailPage() {
     <table><thead><tr>${statusHeaders}</tr></thead><tbody><tr>${statusRows}</tr></tbody></table>
   </div>
 
-  <h3 style="font-size:13px;margin-bottom:8px;">Call Logs (${allCalls.length} candidates)</h3>
+  <h3 style="font-size:13px;margin-bottom:8px;">Call Logs (${reportCalls.length} candidates)</h3>
   <table>
     <thead>
       <tr>
@@ -248,6 +257,21 @@ export default function TelecallerDetailPage() {
       printWindow.document.close();
     }
   };
+
+  const handleDownloadReport = async () => {
+    const allCalls = await fetchAllCalls();
+    generateReport(allCalls, displayName);
+  };
+
+  const handleCustomDownload = async (dl: { label: string; startPage: number; endPage: number }) => {
+    const allCalls = await fetchAllCalls();
+    const start = (dl.startPage - 1) * PAGE_SIZE;
+    const end = dl.endPage * PAGE_SIZE;
+    const sliced = allCalls.slice(start, end);
+    generateReport(sliced, dl.label);
+  };
+
+  const customDls = CUSTOM_DOWNLOADS[username] || null;
 
   if (loading && !stats) {
     return (
@@ -282,12 +306,26 @@ export default function TelecallerDetailPage() {
               <p className="text-slate-500 mt-0.5">Call logs and performance details</p>
             </div>
           </div>
-          <button
-            onClick={handleDownloadReport}
-            className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white text-sm font-medium rounded-xl hover:bg-indigo-700 transition-colors shadow-md shadow-indigo-500/20"
-          >
-            <Download size={16} /> Download Report
-          </button>
+          {customDls ? (
+            <div className="flex items-center gap-2 flex-wrap">
+              {customDls.map((dl) => (
+                <button
+                  key={dl.label}
+                  onClick={() => handleCustomDownload(dl)}
+                  className="flex items-center gap-2 px-3 py-2 bg-indigo-600 text-white text-xs font-medium rounded-xl hover:bg-indigo-700 transition-colors shadow-md shadow-indigo-500/20"
+                >
+                  <Download size={14} /> {dl.label}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <button
+              onClick={handleDownloadReport}
+              className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white text-sm font-medium rounded-xl hover:bg-indigo-700 transition-colors shadow-md shadow-indigo-500/20"
+            >
+              <Download size={16} /> Download Report
+            </button>
+          )}
         </div>
       </div>
 
