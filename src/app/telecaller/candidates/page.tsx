@@ -247,11 +247,20 @@ export default function TelecallerCandidatesPage() {
   const hasMobile = (val?: string) => !!val && val.trim() !== "" && val.trim().toUpperCase() !== "N/A";
   const hasEmail = (val?: string) => !!val && val.trim() !== "" && val.trim().toUpperCase() !== "N/A";
 
+  const NORMAL_WHATSAPP_USERS = ["Telecaller2", "Telecaller4"];
+
   const doWhatsApp = (mobile: string) => {
     const cleaned = mobile.replace(/[^0-9]/g, "");
-    const search = encodeURIComponent(JSON.stringify({ searchString: cleaned, searchTimeRange: 4 }));
-    const filter = encodeURIComponent(JSON.stringify({ channelType: 0, filterType: 0, filterId: 0 }));
-    window.open(`https://live.wati.io/301788/teamInbox?filter=${filter}&search=${search}`, "_blank");
+    if (username && NORMAL_WHATSAPP_USERS.includes(username)) {
+      // Normal WhatsApp for Telecaller2 and Telecaller4
+      const num = cleaned.startsWith("91") ? cleaned : `91${cleaned}`;
+      window.open(`https://wa.me/${num}`, "_blank");
+    } else {
+      // WATI for Telecaller1 and Telecaller3
+      const search = encodeURIComponent(JSON.stringify({ searchString: cleaned, searchTimeRange: 4 }));
+      const filter = encodeURIComponent(JSON.stringify({ channelType: 0, filterType: 0, filterId: 0 }));
+      window.open(`https://live.wati.io/301788/teamInbox?filter=${filter}&search=${search}`, "_blank");
+    }
   };
 
   const doCall = (mobile: string) => {
