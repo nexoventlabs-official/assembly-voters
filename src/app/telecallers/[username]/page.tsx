@@ -305,9 +305,10 @@ export default function TelecallerDetailPage() {
     const statusHeaders = statusConfig.map((s) => `<th style="text-align:center;padding:6px 10px;font-size:10px;color:#666;font-weight:600;">${s.label}</th>`).join("");
     const statusRows = statusConfig.map((s) => `<td style="text-align:center;padding:6px 10px;font-weight:700;color:#333;">${statusCounts[s.key]}</td>`).join("");
 
-    const callRows = candidates
+    const calledCandidates = candidates.filter((c) => c.status !== null);
+    const callRows = calledCandidates
       .map((c) => {
-        const sl = c.status ? (statusLabelMap[c.status] || { label: c.status }) : { label: "Not Called" };
+        const sl = statusLabelMap[c.status!] || { label: c.status };
         return `<tr>
             <td style="padding:6px 10px;font-size:11px;">${c.name || "\u2014"}</td>
             <td style="padding:6px 10px;font-size:11px;">${c.assemblyName || "\u2014"}</td>
@@ -368,7 +369,7 @@ export default function TelecallerDetailPage() {
     <table><thead><tr>${statusHeaders}</tr></thead><tbody><tr>${statusRows}</tr></tbody></table>
   </div>
 
-  <h3 style="font-size:13px;margin-bottom:8px;">Call Logs (${candidates.length} candidates)</h3>
+  <h3 style="font-size:13px;margin-bottom:8px;">Call Logs (${calledCandidates.length} candidates)</h3>
   <table>
     <thead>
       <tr>
