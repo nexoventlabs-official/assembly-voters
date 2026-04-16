@@ -44,6 +44,8 @@ interface HistoryEntry {
 
 interface TelecallerStats {
   totalCalled: number;
+  assignedCount: number;
+  notCalled: number;
   interested: number;
   not_interested: number;
   no_response: number;
@@ -136,6 +138,8 @@ export default function TelecallerDetailPage() {
         if (tcStats) {
           setStats({
             totalCalled: tcStats.totalCalled,
+            assignedCount: tcStats.assignedCount || 0,
+            notCalled: (tcStats.assignedCount || 0) - tcStats.totalCalled,
             interested: tcStats.interested,
             not_interested: tcStats.not_interested,
             no_response: tcStats.no_response,
@@ -232,6 +236,13 @@ export default function TelecallerDetailPage() {
       <div class="stat-value">${reportCalls.length}</div>
       <div class="stat-label">Candidates in Report</div>
     </div>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-card"><div class="stat-value">${stats?.assignedCount ?? 0}</div><div class="stat-label">Assigned</div></div>
+    <div class="stat-card"><div class="stat-value">${stats?.totalCalled ?? 0}</div><div class="stat-label">Called</div></div>
+    <div class="stat-card"><div class="stat-value">${stats?.notCalled ?? 0}</div><div class="stat-label">Not Called</div></div>
+    <div class="stat-card"><div class="stat-value">${stats?.todayCalls ?? 0}</div><div class="stat-label">Today</div></div>
   </div>
 
   <div class="status-table">
