@@ -296,7 +296,11 @@ export default function TelecallerDetailPage() {
     const notCalled = assigned - called;
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
-    const todayCalls = candidates.filter((c) => c.calledAt && new Date(c.calledAt) >= todayStart).length;
+    const todayCalls = candidates.filter((c) => {
+      const calledToday = c.calledAt && new Date(c.calledAt) >= todayStart;
+      const notesUpdatedToday = c.notesUpdatedAt && new Date(c.notesUpdatedAt) >= todayStart;
+      return calledToday || notesUpdatedToday;
+    }).length;
 
     // Status breakdown counts
     const statusCounts: Record<string, number> = {};

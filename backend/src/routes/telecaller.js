@@ -239,12 +239,15 @@ router.get("/stats", async (req, res) => {
 
     stats.notCalled = totalAccepted - stats.totalCalled;
 
-    // Today's calls
+    // Today's calls (includes call status updates and comment-only updates)
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
     const todayCalls = await CallStatusModel.countDocuments({
       telecaller,
-      calledAt: { $gte: todayStart },
+      $or: [
+        { calledAt: { $gte: todayStart } },
+        { notesUpdatedAt: { $gte: todayStart } },
+      ],
     });
     stats.todayCalls = todayCalls;
 
@@ -398,12 +401,15 @@ router.get("/admin/overview", async (req, res) => {
         stats.totalCalled += s.count;
       }
 
-      // Today's calls
+      // Today's calls (includes call status updates and comment-only updates)
       const todayStart = new Date();
       todayStart.setHours(0, 0, 0, 0);
       stats.todayCalls = await CallStatusModel.countDocuments({
         telecaller: tc,
-        calledAt: { $gte: todayStart },
+        $or: [
+          { calledAt: { $gte: todayStart } },
+          { notesUpdatedAt: { $gte: todayStart } },
+        ],
       });
 
       // Assigned candidate count based on alliance
